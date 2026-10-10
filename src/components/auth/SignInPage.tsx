@@ -1,0 +1,261 @@
+import React, { useState } from 'react';
+import { AuthLayout } from './AuthLayout';
+import { GoogleSignInButton } from './GoogleSignInButton';
+import { authService, AuthValidators } from '../../services/authService';
+
+interface SignInPageProps {
+  onNavigateSignUp: () => void;
+  onNavigateForgotPassword: () => void;
+  onNavigateHome: () => void;
+  onLoginSuccess: () => void;
+}
+
+export const SignInPage: React.FC<SignInPageProps> = ({
+  onNavigateSignUp,
+  onNavigateForgotPassword,
+  onNavigateHome,
+  onLoginSuccess,
+}) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [backendFeedback, setBackendFeedback] = useState<string | null>(null);
+
+  // Validate on blur or submit
+  const validate = () => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'Email address is required.';
+    } else if (!AuthValidators.isValidEmail(email)) {
+      newErrors.email = 'Please enter a valid email address.';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBackendFeedback(null);
+
+    if (!validate() || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await authService.signIn({ email, password });
+
+      if (response.success && response.user) {
+        onLoginSuccess();
+      } else {
+        setBackendFeedback(
+          response.error || 'Authentication service error. Please check your configuration.'
+        );
+      }
+    } catch (err: unknown) {
+      setBackendFeedback(
+        err instanceof Error ? err.message : 'An unexpected error occurred during sign in.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AuthLayout
+      onNavigateHome={onNavigateHome}
+      onLaunchDemoConsole={onLoginSuccess}
+    >
+      {/* Title & Subtitle */}
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          Welcome back
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400 text-sm mt-1.5">
+          Sign in to continue to GhostRunner.
+        </p>
+      </div>
+
+      {/* Google Sign In option */}
+      <div className="mb-5">
+        <GoogleSignInButton onGoogleSuccess={onLoginSuccess} />
+      </div>
+
+      {/* Subtle "or" Divider */}
+      <div className="relative flex items-center justify-center my-5">
+        <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+        <span className="bg-white dark:bg-[#0f172a] px-3 text-xs text-slate-500 uppercase tracking-wider font-medium absolute">
+          or
+        </span>
+      </div>
+
+      {/* Backend connection notice if attempted */}
+      {backendFeedback && (
+        <div className="mb-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 mt-0.5">
+              cloud_off
+            </span>
+            <div className="flex flex-col">
+              <span className="font-semibold text-slate-900 dark:text-white">Live Backend Required</span>
+              <span className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed mt-0.5">
+                {backendFeedback}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-200 dark:border-amber-800/40">
+            <button
+              type="button"
+              onClick={onLoginSuccess}
+              className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white underline cursor-pointer"
+            >
+              Enter Console in Demo Mode →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sign In Form */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {/* Email Address */}
+        <div>
+          <label
+            htmlFor="signin-email"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+          >
+            Email address
+          </label>
+          <div className="relative">
+            <input
+              id="signin-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              disabled={isSubmitting}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              placeholder="Enter your email address"
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm border transition-all focus:outline-none focus:ring-2 ${
+                errors.email
+                  ? 'border-red-500/80 focus:ring-red-500/40'
+                  : 'border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 focus:border-blue-500 focus:ring-blue-500/40'
+              }`}
+            />
+          </div>
+          {errors.email && (
+            <p className="mt-1.5 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">error</span>
+              <span>{errors.email}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              htmlFor="signin-password"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
+              Password
+            </label>
+            <button
+              type="button"
+              onClick={onNavigateForgotPassword}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
+          <div className="relative">
+            <input
+              id="signin-password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              disabled={isSubmitting}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+              }}
+              placeholder="Enter your password"
+              className={`w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-50 dark:bg-slate-900/90 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm border transition-all focus:outline-none focus:ring-2 ${
+                errors.password
+                  ? 'border-red-500/80 focus:ring-red-500/40'
+                  : 'border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 focus:border-blue-500 focus:ring-blue-500/40'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer p-0.5"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {showPassword ? 'visibility_off' : 'visibility'}
+              </span>
+            </button>
+          </div>
+          {errors.password && (
+            <p className="mt-1.5 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">error</span>
+              <span>{errors.password}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Primary Action Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full mt-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold shadow-md shadow-blue-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        >
+          {isSubmitting ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Signing in...</span>
+            </>
+          ) : (
+            <span>Sign In</span>
+          )}
+        </button>
+      </form>
+
+      {/* Card Footer: Switch to Sign Up */}
+      <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800/80 text-center">
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          Don&apos;t have an account?{' '}
+          <button
+            type="button"
+            onClick={onNavigateSignUp}
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold cursor-pointer hover:underline"
+          >
+            Sign up
+          </button>
+        </p>
+      </div>
+
+      {/* Demo Direct Access shortcut for quick evaluation */}
+      <div className="mt-3 text-center">
+        <button
+          type="button"
+          onClick={onLoginSuccess}
+          className="text-[11px] text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors cursor-pointer"
+        >
+          ⚡ Or explore live test runner console as Elena Rostova (QA Lead)
+        </button>
+      </div>
+    </AuthLayout>
+  );
+};
