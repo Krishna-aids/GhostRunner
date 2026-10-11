@@ -91,9 +91,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       title={showTooltip ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme` : undefined}
-      className={`relative p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-subtle transition-all cursor-pointer border border-transparent hover:border-border-subtle focus:outline-none focus:ring-1 focus:ring-primary/40 ${className}`}
+      className={`inline-flex items-center justify-center p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-subtle transition-all cursor-pointer border border-transparent hover:border-border-subtle focus:outline-none focus:ring-1 focus:ring-primary/40 ${className}`}
     >
-      <span className="material-symbols-outlined text-[20px] transition-transform duration-300 transform active:rotate-45">
+      <span className="material-symbols-outlined text-[20px] transition-transform duration-300 transform active:rotate-45 leading-none flex items-center justify-center">
         {theme === 'dark' ? 'light_mode' : 'dark_mode'}
       </span>
     </button>
