@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TestDefinition, TestRun, RunStatus } from '../../types/domain';
 import { apiFetch, normalizeConfidenceForDisplay } from '../../lib/api';
+import { DEFAULT_OWNER_ID } from '../../lib/demoStore';
 import { useAuth } from '../../context/AuthContext';
 import { RunStatusBadge } from '../shared/RunStatusBadge';
 import { FailureCategoryChip } from '../shared/FailureCategoryChip';
@@ -22,7 +23,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
   onOpenRun,
 }) => {
   const { user } = useAuth();
-  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
+  const ownerId = ownerIdProp || user?.id || DEFAULT_OWNER_ID;
   const [test, setTest] = useState<TestDefinition | null>(null);
   const [runs, setRuns] = useState<TestRun[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -163,7 +164,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
           className="text-text-muted hover:text-text-primary flex items-center gap-1 cursor-pointer transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          <span>Back to Project</span>
+          <span>Project</span>
         </button>
         <span className="text-border-strong">/</span>
         <span className="font-semibold text-text-primary truncate">{test.name}</span>
@@ -227,7 +228,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
             ) : (
               <>
                 <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-                <span>▶ Run Test</span>
+                <span>Run Test</span>
               </>
             )}
           </button>
@@ -239,7 +240,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-text-primary">Current Execution</span>
+              <span className="font-bold text-sm text-text-primary">Live Execution</span>
               <RunStatusBadge status={timelineStatus} size="sm" />
             </div>
 
@@ -249,7 +250,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
                 onClick={() => onOpenRun(activeRun.id)}
                 className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
               >
-                <span>Inspect Run #{activeRun.run_number || 1} Detail</span>
+                <span>View Run #{activeRun.run_number || 1} Details</span>
                 <span className="font-mono">→</span>
               </button>
             )}
@@ -280,7 +281,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
                 onClick={() => onOpenRun(activeRun.id)}
                 className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold whitespace-nowrap shadow-xs cursor-pointer self-start sm:self-auto"
               >
-                View Failure &amp; Approve Repair →
+                Review Repair Proposal →
               </button>
             </div>
           )}

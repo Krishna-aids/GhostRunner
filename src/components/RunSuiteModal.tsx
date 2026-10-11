@@ -4,7 +4,7 @@
  * Connects to the webhook server's SSE stream (/api/runs/:runId/stream)
  * and displays real-time log output, progress, and test status.
  *
- * Falls back to a rich demo simulation when no runId is provided or
+ * Falls back to simulated test suite when no runId is provided or
  * the SSE connection fails (e.g. server not running).
  */
 import React, { useState, useEffect, useRef } from 'react';
@@ -59,8 +59,8 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
   // ── Real SSE stream (when runId is provided) ─────────────────────────────
   useEffect(() => {
     if (!runId) {
-      // No real run → fall back to demo simulation
-      runDemoSimulation();
+      // No real run → fall back to simulated suite
+      runSimulatedSuite();
       return;
     }
 
@@ -73,13 +73,13 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
     try {
       evtSource = new EventSource(url);
 
-      // Connection timeout — if no message in 10s, fall back to demo
+      // Connection timeout — if no message in 10s, fall back to simulated suite
       connectionTimeout = setTimeout(() => {
         if (isRunning) {
-          console.warn('[RunSuiteModal] SSE connection timeout — falling back to demo');
+          console.warn('[RunSuiteModal] SSE connection timeout — falling back to simulated suite');
           evtSource.close();
-          setSseError('Runner not reachable — showing demo simulation');
-          runDemoSimulation();
+          setSseError('Runner offline or unreachable — running simulated test suite');
+          runSimulatedSuite();
         }
       }, 10000);
 
@@ -160,15 +160,15 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
       evtSource.onerror = () => {
         clearTimeout(connectionTimeout);
         if (isRunning) {
-          console.warn('[RunSuiteModal] SSE error — falling back to demo');
+          console.warn('[RunSuiteModal] SSE error — falling back to simulated suite');
           evtSource.close();
-          setSseError('Could not reach runner server — showing demo simulation');
-          runDemoSimulation();
+          setSseError('Could not reach runner server — running simulated test suite');
+          runSimulatedSuite();
         }
       };
     } catch (err) {
-      setSseError('EventSource not supported — showing demo simulation');
-      runDemoSimulation();
+      setSseError('EventSource not supported — running simulated test suite');
+      runSimulatedSuite();
     }
 
     return () => {
@@ -178,8 +178,8 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId]);
 
-  // ── Demo simulation (fallback) ────────────────────────────────────────────
-  function runDemoSimulation() {
+  // ── Simulated execution (fallback) ────────────────────────────────────────────
+  function runSimulatedSuite() {
     setWorkers([
       { id: 'run-1', name: 'test_checkout_flow.spec.ts', status: 'running', progress: 25, note: 'Step 1: Navigating to /checkout' },
       { id: 'run-2', name: 'test_auth_sso.spec.ts', status: 'running', progress: 35, note: 'Step 2: Submitting Okta SSO payload' },
@@ -286,7 +286,7 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
 
   const headerTitle = repoFullName
     ? `${repoFullName}${branchRef ? ` @ ${branchRef}` : ''}`
-    : 'Acme Web App / checkout-suite • Staging v2.18 • 4 Worker Threads';
+    : 'checkout-suite • Staging • 4 Workers';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -303,7 +303,7 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
             </span>
             <div className="flex flex-col">
               <span className="font-headline-sm text-text-primary font-semibold">
-                {isRunning ? 'Executing Test Suite...' : `Suite ${runStatus === 'passed' ? 'Passed' : 'Completed'}`}
+                {isRunning ? 'Running Test Suite...' : `Suite ${runStatus === 'passed' ? 'Passed' : 'Completed'}`}
               </span>
               <span className="text-text-muted text-xs truncate max-w-xs">{headerTitle}</span>
             </div>
@@ -359,7 +359,7 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
         {workers.length > 0 && (
           <div className="p-space-lg flex flex-col gap-space-sm bg-surface-canvas">
             <span className="font-label-sm text-text-muted uppercase tracking-wider">
-              {runId ? 'Test Execution' : 'Worker Threads (Parallel Execution)'}
+              {runId ? 'Test Execution' : 'Workers (Parallel)'}
             </span>
             <div className="space-y-2">
               {workers.map((t) => (
@@ -387,7 +387,7 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
         {/* Live Log Stream */}
         <div className="p-space-lg bg-surface-muted border-t border-border-subtle flex flex-col gap-1">
           <span className="font-code-sm text-text-muted text-xs uppercase tracking-wider">
-            Live Execution Stream
+            Console Output
           </span>
           <div className="font-mono text-[11px] text-text-secondary space-y-1 max-h-44 overflow-y-auto bg-surface-canvas p-space-sm rounded-lg border border-border-subtle shadow-inner">
             {logs.map((log, i) => (
@@ -430,7 +430,7 @@ export const RunSuiteModal: React.FC<RunSuiteModalProps> = ({
               onClick={onClose}
               className="px-4 py-1.5 rounded-xl bg-primary-container text-on-primary font-label-md text-xs font-semibold hover:opacity-95 cursor-pointer shadow-xs"
             >
-              Done & Return to Dashboard
+              Close
             </button>
           )}
         </div>

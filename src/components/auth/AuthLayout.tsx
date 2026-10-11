@@ -4,6 +4,7 @@ import { ThemeToggle } from '../ThemeToggle';
 interface AuthLayoutProps {
   children: React.ReactNode;
   onNavigateHome: () => void;
+  onLaunchConsole?: () => void;
   onLaunchDemoConsole?: () => void;
 }
 
@@ -14,7 +15,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
   onNavigateHome,
   onLaunchDemoConsole,
+  onLaunchConsole,
 }) => {
+  const handleLaunch = onLaunchConsole || onLaunchDemoConsole;
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070c18] text-slate-900 dark:text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans selection:bg-blue-600 selection:text-white transition-colors duration-200">
       {/* Background ambient lighting effects */}
@@ -41,13 +44,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         </button>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {onLaunchDemoConsole && (
+          {handleLaunch && (
             <button
               type="button"
-              onClick={onLaunchDemoConsole}
+              onClick={handleLaunch}
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-200/80 dark:bg-slate-800/80 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 border border-slate-300/80 dark:border-slate-700/60 transition-colors cursor-pointer"
             >
-              <span>Explore Demo Console</span>
+              <span>Launch Console</span>
               <span className="text-[14px] material-symbols-outlined">arrow_forward</span>
             </button>
           )}

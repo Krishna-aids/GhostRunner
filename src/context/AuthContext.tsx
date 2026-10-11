@@ -16,15 +16,16 @@ import {
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import { setApiDemoMode } from '../lib/api';
 
-export const DEMO_USER: AuthUser = {
-  id: 'user-demo-1406',
+export const DEFAULT_USER: AuthUser = {
+  id: 'user-lead-1406',
   email: 'elena.rostova@acme.corp',
   name: 'Elena Rostova',
   role: 'QA Lead',
   avatarUrl:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuClQsIR7bEguSlug4BrrJjeX5oQCIkUgXw_QZkIaWafVR1CGk6q8ZgITi3oKWNNaYVWPeU4Q94KOiGdViwUCG_PpARSOd6q6rpHK9Qu5Sjq7qmiFEmKMMb8ghwMtNxMnE2VEpID-Pishmdf2nJulyN1EIFnEWcrRSWSNTqTwShRx5qr_0hlU65cH-F5LSFOFJYn3Kpj7A4o56vhUs4gmUpGfVsBz8lmG3R6yd5SW5foGob6h0JXvfXd',
-  provider: 'demo',
+  provider: 'local',
 };
+export const DEMO_USER = DEFAULT_USER;
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -43,10 +44,26 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('ghostrunner_active_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('ghostrunner_active_user');
+      if (saved) {
+        const u = JSON.parse(saved);
+        return u.provider === 'local' || u.provider === 'demo';
+      }
+    } catch {}
+    return false;
+  });
 
   const isConfigured = isSupabaseConfigured();
 
@@ -59,9 +76,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentSession = await authService.getSession();
         if (isMounted) {
           if (currentSession?.user) {
+            const mapped = mapSupabaseUser(currentSession.user);
             setSession(currentSession);
-            setUser(mapSupabaseUser(currentSession.user));
+            setUser(mapped);
             setIsDemoMode(false);
+            try {
+              localStorage.setItem('ghostrunner_active_user', JSON.stringify(mapped));
+            } catch {}
+          } else {
+            // Restore persistent user if stored
+            const saved = localStorage.getItem('ghostrunner_active_user');
+            if (saved) {
+              const u = JSON.parse(saved);
+              setUser(u);
+              setIsDemoMode(u.provider === 'local' || u.provider === 'demo');
+            }
           }
         }
       } catch (err) {
@@ -83,8 +112,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authUser) {
           setUser(authUser);
           setIsDemoMode(false);
+          try {
+            localStorage.setItem('ghostrunner_active_user', JSON.stringify(authUser));
+          } catch {}
         } else if (!isDemoMode) {
           setUser(null);
+          try {
+            localStorage.removeItem('ghostrunner_active_user');
+          } catch {}
         }
       }
     );
@@ -100,6 +135,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.success && res.user) {
       setUser(res.user);
       setIsDemoMode(false);
+      try {
+        localStorage.setItem('ghostrunner_active_user', JSON.stringify(res.user));
+      } catch {}
     }
     return res;
   };
@@ -109,6 +147,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.success && res.user && res.token) {
       setUser(res.user);
       setIsDemoMode(false);
+      try {
+        localStorage.setItem('ghostrunner_active_user', JSON.stringify(res.user));
+      } catch {}
     }
     return res;
   };
@@ -122,13 +163,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setSession(null);
     setIsDemoMode(false);
-    setApiDemoMode(false); // re-enable Supabase routing on sign out
+    setApiDemoMode(false);
+    try {
+      localStorage.removeItem('ghostrunner_active_user');
+    } catch {}
   };
 
   const enterDemoMode = () => {
-    setUser(DEMO_USER);
+    setUser(DEFAULT_USER);
     setIsDemoMode(true);
-    setApiDemoMode(true); // tell apiFetch to skip Supabase for demo users
+    try {
+      localStorage.setItem('ghostrunner_active_user', JSON.stringify(DEFAULT_USER));
+    } catch {}
+    setApiDemoMode(true);
   };
 
   const isAuthenticated = useMemo(() => {

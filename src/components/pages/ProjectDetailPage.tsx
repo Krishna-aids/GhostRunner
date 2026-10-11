@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, TestDefinition, RequiredAssertion } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
+import { DEFAULT_OWNER_ID } from '../../lib/demoStore';
 import { useAuth } from '../../context/AuthContext';
 import { GitHubRepoPicker, type GitHubRepoSelection } from '../GitHubRepoPicker';
 
@@ -18,7 +19,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   onOpenTest,
 }) => {
   const { user } = useAuth();
-  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
+  const ownerId = ownerIdProp || user?.id || DEFAULT_OWNER_ID;
   const [project, setProject] = useState<Project | null>(null);
   const [tests, setTests] = useState<TestDefinition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -227,7 +228,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
           className="text-text-muted hover:text-text-primary flex items-center gap-1 cursor-pointer transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          <span>My Projects</span>
+          <span>Projects</span>
         </button>
         <span className="text-border-strong">/</span>
         <span className="font-semibold text-text-primary">{project.name}</span>
@@ -242,10 +243,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
             </div>
             <div>
               <h2 className="font-semibold text-sm sm:text-base text-text-primary">
-                Repository Connection
+                Repository
               </h2>
               <span className="text-[11px] text-text-muted">
-                Connect your code to enable AST parsing and automated locator patch proposals
+                Connect a GitHub repository or upload a code archive for AST analysis
               </span>
             </div>
           </div>
@@ -285,7 +286,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-surface-subtle border border-border-strong text-text-primary text-xs font-semibold hover:bg-surface-canvas transition-all cursor-pointer shadow-xs disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px] text-text-secondary">folder_zip</span>
-                <span>{isUploadingZip ? 'Uploading…' : 'Upload ZIP for Inspection'}</span>
+                <span>{isUploadingZip ? 'Uploading…' : 'Upload ZIP Archive'}</span>
               </button>
             </div>
           )}
@@ -365,10 +366,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
             </div>
             <div>
               <h2 className="font-semibold text-sm sm:text-base text-text-primary">
-                Tests
+                Test Suites
               </h2>
               <span className="text-[11px] text-text-muted">
-                {tests.length} intent-aware test suites configured for this project
+                {tests.length} test suites configured
               </span>
             </div>
           </div>
@@ -392,7 +393,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
             <span className="material-symbols-outlined text-[32px] text-text-muted">
               playlist_add
             </span>
-            <p className="text-xs text-text-secondary">No tests yet. Create your first test definition!</p>
+            <p className="text-xs text-text-secondary">No test suites found. Create your first test suite.</p>
           </div>
         )}
 
@@ -432,7 +433,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
 
                   <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
                     <span className="text-xs font-semibold text-primary flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                      View &amp; Run <span className="font-mono">→</span>
+                      View Suite <span className="font-mono">→</span>
                     </span>
                   </div>
                 </div>

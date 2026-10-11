@@ -133,7 +133,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
   return (
     <AuthLayout
       onNavigateHome={onNavigateHome}
-      onLaunchDemoConsole={onSignUpSuccess}
+      onLaunchConsole={onSignUpSuccess}
     >
       {/* Title & Subtitle */}
       <div className="text-center mb-6">
@@ -202,7 +202,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
               onClick={onSignUpSuccess}
               className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
             >
-              Enter Console in Demo Mode →
+              Quick Access to Console →
             </button>
           </div>
         </div>
@@ -450,14 +450,14 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
         </p>
       </div>
 
-      {/* Demo Direct Access shortcut */}
+      {/* Direct Access shortcut */}
       <div className="mt-3 text-center">
         <button
           type="button"
           onClick={onSignUpSuccess}
           className="text-[11px] text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors cursor-pointer"
         >
-          ⚡ Or jump straight to demo environment without signing up
+          ⚡ Or continue directly to console
         </button>
       </div>
     </AuthLayout>

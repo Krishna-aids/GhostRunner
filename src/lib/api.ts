@@ -21,13 +21,13 @@ import * as db from '../services/supabaseDataService';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-// -- Demo Mode Flag -----------------------------------------------------------
-// Set by AuthContext when enterDemoMode() is called. When true, apiFetch skips
-// Supabase entirely and uses the local in-memory demo store instead.
-let _isDemoMode = false;
-export function setApiDemoMode(isDemoMode: boolean): void {
-  _isDemoMode = isDemoMode;
+// -- Local Mode Flag -----------------------------------------------------------
+// Set by AuthContext when local guest session is active.
+let _isLocalMode = false;
+export function setApiLocalMode(isLocalMode: boolean): void {
+  _isLocalMode = isLocalMode;
 }
+export const setApiDemoMode = setApiLocalMode;
 
 
 // ── Confidence Normalization Helpers ─────────────────────────────────────────
@@ -92,31 +92,31 @@ async function backendFetch<T>(
   return res.json() as Promise<T>;
 }
 
-// ── In-Memory / Session Seeded Data for Resilient Demo Mode ──────────────────
+// ── Persistent Local Store for Offline and Guest Sessions ──────────────────
+const STORAGE_KEY = 'ghostrunner_data_store_v2';
 
-const STORAGE_KEY = 'ghostrunner_demo_store_v2';
-
-interface DemoStore {
+interface LocalStore {
   projects: Project[];
   tests: Record<string, TestDefinition[]>; // projectId -> TestDefinition[]
   runs: Record<string, TestRun[]>; // testId -> TestRun[]
   artifacts: Record<string, EvidenceArtifact[]>; // runId -> EvidenceArtifact[]
   proposals: Record<string, RepairProposal[]>; // runId -> RepairProposal[]
 }
+type DemoStore = LocalStore;
 
-function getInitialStore(): DemoStore {
+function getInitialStore(): LocalStore {
   const initialProjectId = 'proj-ecom-checkout';
   const initialTestId = 'test-checkout-flow';
   const initialVersionId = 'ver-v1';
-  const initialRun1Id = 'run-demo-1';
-  const initialRun2Id = 'run-demo-2';
+  const initialRun1Id = 'run-101';
+  const initialRun2Id = 'run-102';
   const initialProposalId = 'prop-drift-01';
 
   return {
     projects: [
       {
         id: initialProjectId,
-        owner_id: 'user-demo-1406',
+        owner_id: 'user-lead-1406',
         name: 'E-Commerce Checkout',
         repo_metadata: {
           github_url: 'github.com/acme-corp/ecommerce-store',
@@ -130,7 +130,7 @@ function getInitialStore(): DemoStore {
       },
       {
         id: 'proj-admin-portal',
-        owner_id: 'user-demo-1406',
+        owner_id: 'user-lead-1406',
         name: 'Acme Admin Portal',
         repo_metadata: {
           github_url: 'github.com/acme-corp/admin-portal',
@@ -148,7 +148,7 @@ function getInitialStore(): DemoStore {
         {
           id: initialTestId,
           project_id: initialProjectId,
-          owner_id: 'user-demo-1406',
+          owner_id: 'user-lead-1406',
           name: 'Checkout Flow',
           original_intent:
             'User adds item to cart, proceeds to checkout, completes payment, and lands on order confirmation page.',
@@ -206,12 +206,12 @@ function getInitialStore(): DemoStore {
           id: initialRun2Id,
           test_definition_id: initialTestId,
           test_version_id: initialVersionId,
-          owner_id: 'user-demo-1406',
+          owner_id: 'user-lead-1406',
           status: 'failed',
           classification: 'LOCATOR_DRIFT',
           confidence: 87,
           summary: 'Button selector .checkout-btn not found. Element moved in DOM to semantic role.',
-          environment_ref: 'demo-env',
+          environment_ref: 'staging-env',
           started_at: new Date(Date.now() - 120000).toISOString(),
           finished_at: new Date(Date.now() - 112000).toISOString(),
           parent_run_id: null,
@@ -223,12 +223,12 @@ function getInitialStore(): DemoStore {
           id: initialRun1Id,
           test_definition_id: initialTestId,
           test_version_id: initialVersionId,
-          owner_id: 'user-demo-1406',
+          owner_id: 'user-lead-1406',
           status: 'passed',
           classification: null,
           confidence: null,
           summary: 'All 5 steps executed cleanly without DOM drift.',
-          environment_ref: 'demo-env',
+          environment_ref: 'staging-env',
           started_at: new Date(Date.now() - 3600000).toISOString(),
           finished_at: new Date(Date.now() - 3589000).toISOString(),
           parent_run_id: null,
@@ -325,10 +325,13 @@ function getInitialStore(): DemoStore {
   };
 }
 
-function loadStore(): DemoStore {
+function loadStore(): LocalStore {
   try {
-    // localStorage persists across sessions; also accept legacy sessionStorage key
-    const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem('ghostrunner_demo_store_v1');
+    // localStorage persists across sessions; also accept legacy keys
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ||
+      localStorage.getItem('ghostrunner_demo_store_v2') ||
+      sessionStorage.getItem('ghostrunner_demo_store_v1');
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
@@ -338,7 +341,7 @@ function loadStore(): DemoStore {
   return initial;
 }
 
-function saveStore(store: DemoStore): void {
+function saveStore(store: LocalStore): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {
@@ -559,19 +562,19 @@ async function supabaseFetch<T>(
 
 export async function apiFetch<T>(
   endpoint: string,
-  ownerId: string = 'user-demo-1406',
+  ownerId: string = 'user-lead-1406',
   options: RequestInit = {}
 ): Promise<T> {
-  // ── Supabase Routing (primary when configured, but skip if in demo mode) ──
-  if (isSupabaseConfigured() && !_isDemoMode) {
+  // ── Supabase Routing (primary when configured, but skip if in local guest mode) ──
+  if (isSupabaseConfigured() && !_isLocalMode) {
     try {
       return await supabaseFetch<T>(endpoint, ownerId, options);
     } catch (err) {
-      console.warn(`[GhostRunner] Supabase request for ${endpoint} failed, falling back to demo store.`, err);
+      console.warn(`[GhostRunner] Supabase request for ${endpoint} unavailable, using persistent local store.`, err);
     }
   }
 
-  // ── Local Simulation Handler for Demo Resilience ─────────────────────────
+  // ── Local Simulation Handler ─────────────────────────
   await new Promise((r) => setTimeout(r, 120)); // realistic latency
   const store = loadStore();
 
@@ -720,7 +723,7 @@ export async function apiFetch<T>(
       classification: null,
       confidence: null,
       summary: '🚀 Playwright Chromium worker starting...',
-      environment_ref: 'demo-env',
+      environment_ref: 'staging-env',
       started_at: new Date().toISOString(),
       finished_at: null,
       parent_run_id: null,
@@ -947,7 +950,7 @@ export async function apiFetch<T>(
         classification: null,
         confidence: 100,
         summary: 'Self-healed action plan validated: Test passed on v2 locators.',
-        environment_ref: 'demo-env',
+        environment_ref: 'staging-env',
         started_at: new Date().toISOString(),
         finished_at: new Date().toISOString(),
         parent_run_id: targetRun.id,
@@ -969,10 +972,11 @@ export async function apiFetch<T>(
   throw new Error(`Unhandled endpoint: ${endpoint}`);
 }
 
-// ── Store Reset Helper for Demo ──────────────────────────────────────────────
-export function resetDemoStore(): void {
+// ── Store Reset Helper ──────────────────────────────────────────────
+export function resetLocalStore(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('ghostrunner_demo_store_v2');
     sessionStorage.removeItem('ghostrunner_demo_store_v1');
   } catch {
     // ignore
@@ -980,5 +984,6 @@ export function resetDemoStore(): void {
   // Re-seed with fresh initial state
   saveStore(getInitialStore());
 }
+export const resetDemoStore = resetLocalStore;
 
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Project } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
+import { DEFAULT_OWNER_ID } from '../../lib/demoStore';
 import { useAuth } from '../../context/AuthContext';
 
 interface ProjectsPageProps {
@@ -15,7 +16,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onSwitchToImportView,
 }) => {
   const { user } = useAuth();
-  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
+  const ownerId = ownerIdProp || user?.id || DEFAULT_OWNER_ID;
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,10 +97,10 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-subtle">
         <div className="flex flex-col gap-0.5">
           <h1 className="font-headline-lg text-2xl font-bold text-text-primary tracking-tight">
-            My Projects
+            Projects
           </h1>
           <p className="font-body-md text-xs sm:text-sm text-text-secondary">
-            Manage your connected repositories, test definitions, and automated self-healing pipelines.
+            Connected repositories, test suites, and automated healing pipelines.
           </p>
         </div>
 
@@ -173,16 +174,16 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-surface-muted text-text-muted flex items-center justify-center">
             <span className="material-symbols-outlined text-[28px]">folder_open</span>
           </div>
-          <h3 className="text-base font-bold text-text-primary">No projects yet. Create one!</h3>
+          <h3 className="text-base font-bold text-text-primary">No projects found</h3>
           <p className="text-xs text-text-secondary max-w-sm">
-            Get started by creating a project and connecting your code repository to run intent-aware tests.
+            Create a project to connect a repository and configure automated test pipelines.
           </p>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
             className="mt-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold cursor-pointer"
           >
-            + Create First Project
+            New Project
           </button>
         </div>
       )}
@@ -245,9 +246,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                 </div>
 
                 <div className="pt-3 border-t border-border-subtle flex items-center justify-between text-[11px] text-text-muted">
-                  <span>Self-Healing Engine: Ready</span>
+                  <span>Self-Healing: Active</span>
                   <span className="text-text-primary font-medium group-hover:underline">
-                    View Tests &amp; Runs
+                    View Tests
                   </span>
                 </div>
               </div>

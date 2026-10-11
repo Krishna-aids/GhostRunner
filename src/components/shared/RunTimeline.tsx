@@ -53,7 +53,7 @@ export const RunTimeline: React.FC<RunTimelineProps> = ({ currentStatus, lastUpd
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-xs text-text-primary uppercase tracking-wider">
-            Pipeline Execution Timeline
+            Execution Pipeline
           </span>
           {!isTerminal && (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-medium">

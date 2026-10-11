@@ -61,17 +61,17 @@ export const InvestigateModal: React.FC<InvestigateModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-surface-canvas rounded-2xl shadow-2xl border border-border-strong w-full max-w-3xl flex flex-col overflow-hidden max-h-[90vh]">
+      <div className="bg-surface-canvas rounded-2xl shadow-2xl border border-border-strong w-full max-w-2xl flex flex-col overflow-hidden max-h-[90vh]">
         {/* Header */}
-        <div className="px-space-lg py-space-md bg-status-failure-subtle border-b border-status-failure/20 flex items-center justify-between">
-          <div className="flex items-center gap-space-sm">
-            <span className="material-symbols-outlined text-status-failure text-[24px]">troubleshoot</span>
+        <div className="px-4 py-3 bg-surface-subtle border-b border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-rose-500 text-[20px]">troubleshoot</span>
             <div className="flex flex-col">
-              <span className="font-headline-sm text-text-primary font-bold">
-                Failure Root-Cause Investigation
+              <span className="font-semibold text-sm text-text-primary">
+                Failure Root-Cause Diagnostic
               </span>
-              <span className="text-text-muted text-xs">
-                {run.specFile} • Line 74 • Timeout & Threshold Violation
+              <span className="text-text-muted text-[11px] font-mono">
+                {run.specFile} • Timeout & Threshold Violation
               </span>
             </div>
           </div>
@@ -79,35 +79,35 @@ export const InvestigateModal: React.FC<InvestigateModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-canvas transition-colors cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-space-lg flex-1 overflow-y-auto flex flex-col gap-space-lg">
+        <div className="p-4 sm:p-5 flex-1 overflow-y-auto flex flex-col gap-4">
           {/* Failure Summary Card */}
-          <div className="p-space-md rounded-xl bg-status-failure-subtle/50 border border-status-failure/30 flex flex-col gap-1.5">
+          <div className="p-3.5 rounded-xl bg-surface-subtle border border-border-subtle flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-label-md text-status-failure font-semibold flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px]">error</span>
-                Target Locator Detached or Missing
+              <span className="text-xs font-semibold text-rose-500 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px]">error</span>
+                Target Locator Missing in DOM
               </span>
-              <span className="font-code-sm text-status-failure font-bold">Timeout: 3000ms</span>
+              <span className="font-mono text-xs text-text-muted">Timeout: 3000ms</span>
             </div>
-            <code className="font-code-sm text-status-failure bg-surface-canvas p-2 rounded-lg break-all border border-status-failure/20">
+            <code className="font-mono text-xs text-rose-500 bg-surface-canvas p-2 rounded-lg break-all border border-border-subtle">
               button.bulk-actions-trigger
             </code>
-            <p className="font-body-sm text-text-secondary mt-1">
-              GhostRunner detected that <code className="text-xs bg-surface-canvas px-1 rounded">.bulk-actions-trigger</code> was removed in PR #389. The top discovered candidate scored <strong>64%</strong>, which triggered the safety veto because the active sensitivity cutoff is set to <strong>70%</strong>.
+            <p className="text-xs text-text-secondary mt-0.5 leading-relaxed">
+              Target element was removed during recent UI updates. Discovered candidate scored <strong>64%</strong>, which triggered threshold protection (required: <strong>70%</strong>).
             </p>
           </div>
 
           {/* Neural Candidates Selector */}
           <div className="flex flex-col gap-2">
-            <span className="font-headline-sm text-text-primary font-semibold text-sm">
-              GhostRunner Neural Locator Candidates:
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              Candidate Replacements
             </span>
             <div className="space-y-2">
               {candidates.map((cand) => {

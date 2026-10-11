@@ -72,19 +72,16 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
 
   return (
     <>
-      <div className="bg-surface-canvas rounded-2xl border-2 border-amber-500/30 p-5 sm:p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
-        {/* Subtle accent banner */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
-
+      <div className="bg-surface-canvas rounded-2xl border border-amber-500/20 p-5 sm:p-6 shadow-xs flex flex-col gap-4 relative overflow-hidden">
         {/* Card Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-subtle">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
               <span className="material-symbols-outlined text-[18px]">auto_fix_high</span>
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-sm text-text-primary">
-                AI Self-Healing Repair Proposal
+                Self-Healing Repair Proposal
               </span>
               <span className="text-[11px] text-text-muted">
                 Proposed Action Plan • Created {new Date(proposal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -116,7 +113,7 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
             lightbulb
           </span>
           <div className="flex flex-col gap-0.5">
-            <span className="font-semibold text-amber-900 dark:text-amber-200">Root Cause & Healing Rationale:</span>
+            <span className="font-semibold text-amber-900 dark:text-amber-200">Root Cause & Strategy:</span>
             <p className="text-text-secondary leading-relaxed">{proposal.reason}</p>
           </div>
         </div>
@@ -159,8 +156,8 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border-subtle">
           <span className="text-xs text-text-muted">
             {isAlreadyApproved
-              ? '✅ This repair was approved and applied to Test Version v2.'
-              : 'Approving this proposal automatically creates Version v2 and re-runs validation.'}
+              ? 'This repair was approved and applied to Test Version v2.'
+              : 'Approving creates test version v2 and executes validation.'}
           </span>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">

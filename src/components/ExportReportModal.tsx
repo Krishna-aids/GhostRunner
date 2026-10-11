@@ -89,10 +89,10 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
             <span className="material-symbols-outlined text-primary text-[22px]">download</span>
             <div className="flex flex-col">
               <span className="font-headline-sm text-text-primary font-semibold">
-                Export Test Telemetry Report
+                Export Test Report
               </span>
               <span className="text-text-muted text-xs">
-                Compatible with Jenkins, GitHub Actions, GitLab CI, and Datadog
+                JUnit XML and JSON format for CI/CD integrations
               </span>
             </div>
           </div>
@@ -118,7 +118,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
-              JUnit XML (CI/CD standard)
+              JUnit XML
             </button>
             <button
               type="button"
@@ -129,7 +129,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
-              JSON Raw Telemetry
+              JSON Telemetry
             </button>
           </div>
 
@@ -142,7 +142,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
               <span className="material-symbols-outlined text-[16px]">
                 {copied ? 'check' : 'content_copy'}
               </span>
-              <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+              <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
             <button
               type="button"
@@ -150,7 +150,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary text-xs font-label-md font-semibold hover:opacity-90 transition-colors shadow-xs cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px]">file_download</span>
-              <span>Download File</span>
+              <span>Download</span>
             </button>
           </div>
         </div>

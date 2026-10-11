@@ -35,32 +35,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
 
-        <p className="font-body-md text-sm text-text-secondary max-w-3xl">
-          Continuous flakiness elimination, self-healing pipeline metrics, and locator degradation trends.
+        <p className="font-body-md text-xs sm:text-sm text-text-secondary max-w-3xl">
+          Real-time test suite health, automated locator recovery metrics, and CI/CD pipeline velocity.
         </p>
       </div>
 
       {/* Hero ROI Banner */}
-      <div className="bg-gradient-to-r from-primary/5 via-status-healed/10 to-surface-canvas rounded-2xl p-space-lg border border-border-subtle shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-space-lg">
-        <div className="flex items-start gap-space-md max-w-2xl">
-          <div className="p-3 rounded-xl bg-status-healed text-on-primary shadow-sm flex-shrink-0">
-            <span className="material-symbols-outlined text-[28px]">trending_up</span>
+      <div className="bg-surface-canvas rounded-xl p-4 sm:p-5 border border-border-subtle shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5 max-w-2xl">
+          <div className="p-2.5 rounded-lg bg-status-healed/15 text-status-healed flex-shrink-0">
+            <span className="material-symbols-outlined text-[24px]">trending_up</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="font-headline-md text-text-primary">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-base sm:text-lg text-text-primary">
               14.2 Engineering Hours Preserved This Sprint
             </span>
-            <p className="font-body-md text-text-secondary">
-              GhostRunner autonomously recovered 6 blocked PR builds that would have halted CI pipelines.
-              Current locator resilience score is <span className="font-semibold text-status-healed">94.8%</span>.
+            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+              Autonomously recovered 6 failing pipeline runs that would have blocked PR merges.
+              Locator resilience score is <span className="font-semibold text-status-healed">94.8%</span>.
             </p>
           </div>
         </div>
         <button
           onClick={onOpenHealingQueue}
-          className="px-4 py-2 rounded-xl bg-surface-canvas border border-border-strong text-text-primary text-sm font-semibold hover:bg-surface-subtle transition-colors shadow-xs cursor-pointer whitespace-nowrap"
+          className="px-3.5 py-2 rounded-lg bg-surface-subtle border border-border-subtle text-text-primary text-xs font-medium hover:bg-surface-container transition-colors shadow-xs cursor-pointer whitespace-nowrap self-stretch sm:self-auto text-center"
         >
-          Review 3 Open Heals ➔
+          Review Pending Heals ➔
         </button>
       </div>
 

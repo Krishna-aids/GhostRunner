@@ -102,7 +102,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   return (
     <AuthLayout
       onNavigateHome={onNavigateHome}
-      onLaunchDemoConsole={onLoginSuccess}
+      onLaunchConsole={onLoginSuccess}
     >
       {/* Title & Subtitle */}
       <div className="text-center mb-6">
@@ -166,7 +166,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               onClick={onLoginSuccess}
               className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
             >
-              Enter Console in Demo Mode →
+              Quick Access to Console →
             </button>
           </div>
         </div>
@@ -205,7 +205,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               onClick={onLoginSuccess}
               className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
             >
-              Enter Console in Demo Mode →
+              Quick Access to Console →
             </button>
           </div>
         </div>
@@ -335,10 +335,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({
         </p>
       </div>
 
-      {/* Demo Direct Access — prominent CTA for demo viewers */}
+      {/* Quick Access — QA Lead session */}
       <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center gap-1">
         <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">
-          Just exploring?
+          Quick Access
         </p>
         <button
           type="button"
@@ -346,10 +346,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-violet-500/60 dark:border-violet-400/50 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/40 text-xs font-semibold transition-all cursor-pointer w-full justify-center"
         >
           <span>⚡</span>
-          <span>Enter Demo Console — as Elena Rostova (QA Lead)</span>
+          <span>Sign In as Elena Rostova (QA Lead)</span>
         </button>
         <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
-          Full interactive demo · No sign-up needed
+          Direct access to test suites and healing engine
         </p>
       </div>
     </AuthLayout>

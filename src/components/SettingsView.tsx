@@ -39,25 +39,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-space-lg max-w-4xl">
-      {/* Title & Save Changes Action - Issue 2 (Typographic Hierarchy) & Issue 5 (Vertical Center Alignment) */}
-      <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-5 max-w-4xl">
+      {/* Header and Save Action */}
+      <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary leading-tight">
-            Engine & Pipeline Settings
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
+            Settings & Preferences
           </h1>
 
           <button
             onClick={handleSave}
             type="button"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-on-primary font-medium text-sm hover:opacity-95 shadow-xs transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary text-on-primary font-medium text-xs sm:text-sm hover:opacity-95 shadow-xs transition-all cursor-pointer shrink-0"
           >
-            <span className="material-symbols-outlined text-[18px]">save</span>
+            <span className="material-symbols-outlined text-[16px]">save</span>
             <span>Save Changes</span>
           </button>
         </div>
-        <p className="text-sm text-text-secondary leading-relaxed">
-          Configure neural selector matching sensitivity, autonomous PR creation, and Playwright execution parameters.
+        <p className="text-xs sm:text-sm text-text-secondary">
+          Configure locator matching sensitivity, execution parameters, and CI/CD synchronization.
         </p>
       </div>
 
@@ -65,23 +65,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div
           role="status"
           aria-live="polite"
-          className="p-space-md bg-status-success-subtle text-status-success border border-status-success/30 rounded-xl flex items-center gap-2 animate-in fade-in duration-200"
+          className="p-3 bg-status-success-subtle text-status-success border border-status-success/30 rounded-lg flex items-center gap-2 animate-in fade-in duration-200 text-xs"
         >
-          <span className="material-symbols-outlined text-[20px]">check_circle</span>
-          <span className="font-medium text-body-sm">
-            GhostRunner settings saved and synchronized across all active test worker nodes.
+          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+          <span className="font-medium">
+            Settings saved and synchronized across active test runners.
           </span>
         </div>
       )}
 
-      {/* Appearance & Color Theme - Issue 4 (Consolidation to Cards) & Issue 3 (Body Text >= 12px) */}
-      <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-xs flex flex-col gap-space-md">
+      {/* Appearance & Theme */}
+      <div className="bg-surface-canvas rounded-xl p-4 sm:p-5 border border-border-subtle shadow-xs flex flex-col gap-3">
         <div className="flex flex-col">
-          <h2 className="text-base font-semibold text-text-primary">
-            Appearance & Color Theme
+          <h2 className="text-sm font-semibold text-text-primary">
+            Appearance
           </h2>
-          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
-            Customize interface contrast and ambient tone. GhostRunner adapts instantly across the Console, Landing Page, and Auth views.
+          <p className="text-xs text-text-secondary mt-0.5">
+            Select your interface theme preference across the dashboard and console.
           </p>
         </div>
 
@@ -164,15 +164,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* 1. Core Engine Mode - Issue 6 (Consistent Toggle Color) & Issue 8 (Slider Thumb Position Alignment) */}
-      <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-xs flex flex-col gap-space-md">
+      {/* 1. Core Engine Mode */}
+      <div className="bg-surface-canvas rounded-xl p-4 sm:p-5 border border-border-subtle shadow-xs flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
-            <h2 className="text-base font-semibold text-text-primary">
-              Autonomous Self-Healing Engine
+            <h2 className="text-sm font-semibold text-text-primary">
+              Autonomous Self-Healing
             </h2>
-            <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
-              When enabled, failed locators trigger dynamic DOM candidate synthesis without halting the assertion tree.
+            <p className="text-xs text-text-secondary mt-0.5">
+              Automatically synthesize resilient locators when DOM elements change during execution.
             </p>
           </div>
 
@@ -182,13 +182,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             aria-checked={engineActive}
             aria-label="Toggle Autonomous Self-Healing Engine"
             onClick={onToggleEngine}
-            className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
               engineActive ? 'bg-primary' : 'bg-surface-container'
             }`}
           >
             <div
               className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform ${
-                engineActive ? 'translate-x-6' : 'translate-x-0'
+                engineActive ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>
@@ -196,14 +196,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <hr className="border-border-subtle" />
 
-        {/* Confidence Threshold Slider - Issue 8 (Position value directly above slider thumb) */}
+        {/* Confidence Threshold Slider */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-col">
-            <label htmlFor="confidence-slider" className="text-sm font-semibold text-text-primary">
-              Minimum Match Confidence Threshold
+            <label htmlFor="confidence-slider" className="text-xs font-semibold text-text-primary">
+              Minimum Confidence Threshold
             </label>
-            <span className="text-xs sm:text-sm text-text-secondary mt-0.5">
-              Candidates below this threshold will not be executed automatically and will route to the Healing Queue.
+            <span className="text-xs text-text-secondary mt-0.5">
+              Candidate matches below this score will route to the healing queue for manual confirmation.
             </span>
           </div>
 
@@ -237,20 +237,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           <div className="flex justify-between text-xs font-mono text-text-muted">
             <span>50% (Permissive)</span>
-            <span className="text-primary font-semibold">70% (Recommended)</span>
+            <span className="text-primary font-semibold">70% (Standard)</span>
             <span>95% (Strict)</span>
           </div>
         </div>
       </div>
 
-      {/* 2. Selector Strategy Priority - Issue 7 (Disabled Visual State on First Up and Last Down Arrows) */}
-      <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-xs flex flex-col gap-space-md">
+      {/* 2. Selector Strategy Priority */}
+      <div className="bg-surface-canvas rounded-xl p-4 sm:p-5 border border-border-subtle shadow-xs flex flex-col gap-3">
         <div className="flex flex-col">
-          <h2 className="text-base font-semibold text-text-primary">
-            Synthesized Selector Priority Hierarchy
+          <h2 className="text-sm font-semibold text-text-primary">
+            Locator Resolution Priority
           </h2>
-          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
-            GhostRunner prefers generating locators using the order below when multiple stable matches exist.
+          <p className="text-xs text-text-secondary mt-0.5">
+            Order of preference when evaluating multiple candidate locators for an element.
           </p>
         </div>
 
@@ -258,11 +258,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {strategyPriority.map((strategy, idx) => (
             <div
               key={strategy}
-              className="flex items-center justify-between p-space-sm bg-surface-subtle rounded-lg border border-border-subtle"
+              className="flex items-center justify-between p-2.5 bg-surface-subtle rounded-lg border border-border-subtle"
             >
-              <div className="flex items-center gap-space-sm">
-                <span className="font-mono text-xs text-text-muted w-6 text-center">{idx + 1}.</span>
-                <span className="font-mono text-xs sm:text-sm text-text-primary font-medium">{strategy}</span>
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-xs text-text-muted w-5 text-center">{idx + 1}.</span>
+                <span className="font-mono text-xs text-text-primary font-medium">{strategy}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -293,10 +293,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* 3. GitHub & CI/CD Automated PRs - Issue 6 (Consistent Toggle Color) */}
-      <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-xs flex flex-col gap-space-md">
-        <h2 className="text-base font-semibold text-text-primary">
-          CI/CD Codebase Synchronization
+      {/* 3. GitHub & CI/CD Automated PRs */}
+      <div className="bg-surface-canvas rounded-xl p-4 sm:p-5 border border-border-subtle shadow-xs flex flex-col gap-4">
+        <h2 className="text-sm font-semibold text-text-primary">
+          Codebase Synchronization
         </h2>
 
         <div className="flex items-center justify-between gap-4">

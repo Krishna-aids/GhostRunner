@@ -15,10 +15,10 @@ interface Message {
 }
 
 const PRESET_PROMPTS = [
-  'How do you auto-heal broken locators?',
-  'Show me an example healed test',
-  'Can you inspect flaky tests right now?',
-  'Why did data-testid="checkout-btn" fail?',
+  'How does locator healing work?',
+  'Show healed patch example',
+  'Run flakiness diagnostics',
+  'Inspect test_checkout_flow failure',
 ];
 
 export const MascotChat: React.FC<MascotChatProps> = ({ isOpen, onClose }) => {
@@ -26,9 +26,9 @@ export const MascotChat: React.FC<MascotChatProps> = ({ isOpen, onClose }) => {
     {
       id: 'm-1',
       sender: 'mascot',
-      text: "👋 Boo! I'm Ghosty, your AI self-healing test companion. I watch your Playwright & Cypress suites and automatically repair flaky or altered selectors before CI fails.",
+      text: "GhostRunner AI Diagnostics active. I monitor your Playwright suites and automatically synthesize resilient locators when DOM elements drift.",
       timestamp: 'Just now',
-      actionBadge: 'Auto-Healing v2.4 Active',
+      actionBadge: 'Auto-Healing Active',
     },
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -60,28 +60,28 @@ export const MascotChat: React.FC<MascotChatProps> = ({ isOpen, onClose }) => {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulated instant intelligent response matching video demo
+    // Instant intelligent diagnostics response
     setTimeout(() => {
       let botResponse = '';
       let codeSnippet: string | undefined;
-      let badge: string | undefined = 'Healed with 99.4% confidence';
+      let badge: string | undefined = 'Healed (94% conf)';
 
       const lower = trimmed.toLowerCase();
       if (lower.includes('checkout') || lower.includes('fail') || lower.includes('data-testid')) {
         botResponse =
-          'I detected that `button[data-testid="checkout-btn"]` was replaced by an updated design system component (`button[aria-label="Proceed to Payment"]`). I synthesized and validated the fallback locator with 0ms downtime!';
-        codeSnippet = `- await page.click('[data-testid="checkout-btn"]');\n+ await page.click('button[aria-label="Proceed to Payment"]'); // [GhostRunner Auto-Healed]`;
-      } else if (lower.includes('auto-heal') || lower.includes('how')) {
+          'Detected selector mutation: `button#checkout-submit` was replaced by design system update `button[data-testid="place-order-cta"]`. Validated and healed with 0ms downtime.';
+        codeSnippet = `- await page.click('button#checkout-submit');\n+ await page.click('button[data-testid="place-order-cta"]'); // [GhostRunner Healed]`;
+      } else if (lower.includes('heal') || lower.includes('how')) {
         botResponse =
-          'When an element locator breaks during execution, GhostRunner captures DOM snapshots, accessibility tree context, visual diffs, and coordinates. Our neural matcher generates and applies resilient selectors in under 45ms.';
-        badge = 'Neural DOM Matching';
+          'When an assertion or action times out on a detached element, GhostRunner analyzes accessibility trees, DOM diffs, and sibling coordinates to synthesize a resilient replacement selector in ~32ms.';
+        badge = 'Neural DOM Match';
       } else if (lower.includes('example') || lower.includes('show')) {
         botResponse =
-          'Here is an example patch generated for user authentication flow in Chrome Headless:';
-        codeSnippet = `// Original failed: locator('input.user-email-v1')\n// Healed replacement:\nawait page.getByRole('textbox', { name: /email address/i }).fill('qa@acme.corp');`;
+          'Example verified patch generated for user login flow in Chromium:';
+        codeSnippet = `// Original: input.user-email-v1\n// Healed replacement:\nawait page.getByRole('textbox', { name: /email address/i }).fill('qa@acme.corp');`;
       } else {
-        botResponse = `Got it! I am actively scanning your test traces for selector regressions. Everything looks healthy — all 18 suites running with auto-healing enabled.`;
-        badge = '18 Suites Protected';
+        botResponse = `Diagnostics complete. All active test suites are monitored with automated locator recovery enabled. No critical regressions detected.`;
+        badge = 'Suites Protected';
       }
 
       setMessages((prev) => [
@@ -109,29 +109,29 @@ export const MascotChat: React.FC<MascotChatProps> = ({ isOpen, onClose }) => {
       style={{ maxHeight: 'calc(100vh - 140px)', height: '490px' }}
     >
       {/* Header */}
-      <div className="px-4 py-3 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-indigo-950/40 border-b border-border-subtle flex items-center justify-between">
+      <div className="px-4 py-3 bg-surface-subtle border-b border-border-subtle flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 flex items-center justify-center overflow-hidden">
+          <div className="relative w-7 h-7 rounded-lg bg-surface-canvas border border-border-subtle flex items-center justify-center overflow-hidden p-0.5">
             <img
               src="/mascot.svg"
               alt="Ghosty Mascot"
-              className="w-7 h-7 object-contain"
+              className="w-full h-full object-contain"
             />
-            <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-surface-canvas" />
+            <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full bg-status-success ring-1 ring-surface-canvas" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-xs text-text-primary">Ghosty AI Assistant</span>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-400 font-medium">Live</span>
+              <span className="font-semibold text-xs text-text-primary">Ghosty Assistant</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-status-healed-subtle text-status-healed font-medium">Live</span>
             </div>
-            <p className="text-[11px] text-text-muted leading-none mt-0.5">Automated Test Repair & Insights</p>
+            <p className="text-[10px] text-text-muted leading-none mt-0.5">Automated Test Diagnostics</p>
           </div>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-surface-subtle transition-colors cursor-pointer"
+          className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-surface-canvas transition-colors cursor-pointer"
           aria-label="Close Chat"
         >
           <span className="material-symbols-outlined text-[18px]">close</span>

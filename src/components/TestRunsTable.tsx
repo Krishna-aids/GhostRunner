@@ -312,11 +312,11 @@ export const TestRunsTable: React.FC<TestRunsTableProps> = ({
                   <div className="col-span-2 flex flex-col gap-0.5">
                     {run.status === 'healed_passed' && (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-warning-subtle text-status-warning font-label-sm text-label-sm font-semibold w-max border border-status-warning/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-label-sm text-xs font-medium w-max border border-amber-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                           Healed & Passed
                         </span>
-                        <span className="font-code-sm text-code-sm text-status-healed">
+                        <span className="font-code-sm text-xs text-status-healed">
                           {run.statusSubtitle}
                         </span>
                       </>
@@ -324,11 +324,11 @@ export const TestRunsTable: React.FC<TestRunsTableProps> = ({
 
                     {run.status === 'passed' && (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-success-subtle text-status-success font-label-sm text-label-sm font-semibold w-max border border-status-success/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-label-sm text-xs font-medium w-max border border-emerald-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                           Passed
                         </span>
-                        <span className="font-code-sm text-code-sm text-text-muted">
+                        <span className="font-code-sm text-xs text-text-muted">
                           {run.statusSubtitle}
                         </span>
                       </>
@@ -336,11 +336,11 @@ export const TestRunsTable: React.FC<TestRunsTableProps> = ({
 
                     {run.status === 'failed' && (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-failure-subtle text-status-failure font-label-sm text-label-sm font-semibold w-max border border-status-failure/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-status-failure"></span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 font-label-sm text-xs font-medium w-max border border-rose-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                           Failed
                         </span>
-                        <span className="font-code-sm text-code-sm text-status-failure truncate">
+                        <span className="font-code-sm text-xs text-rose-500 truncate">
                           {run.statusSubtitle}
                         </span>
                       </>
@@ -352,19 +352,19 @@ export const TestRunsTable: React.FC<TestRunsTableProps> = ({
                     {run.status === 'failed' ? (
                       <button
                         onClick={() => onInvestigate(run)}
-                        className="inline-flex items-center gap-1 px-space-sm py-1 rounded-lg bg-status-failure-subtle text-status-failure font-label-md text-label-md hover:bg-status-failure hover:text-white transition-all font-semibold cursor-pointer border border-status-failure/30"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 font-label-md text-xs hover:bg-rose-500 hover:text-white transition-all font-medium cursor-pointer border border-rose-500/30"
                         type="button"
                       >
-                        <span className="material-symbols-outlined text-[16px]">troubleshoot</span>
+                        <span className="material-symbols-outlined text-[15px]">troubleshoot</span>
                         <span>Investigate</span>
                       </button>
                     ) : (
                       <button
                         onClick={() => toggleRow(run.id)}
-                        className="inline-flex items-center gap-1 px-space-sm py-1 rounded-lg bg-surface-canvas shadow-sm text-text-primary font-label-md text-label-md hover:bg-surface-subtle transition-colors cursor-pointer border border-border-subtle"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-canvas shadow-xs text-text-primary font-label-md text-xs hover:bg-surface-subtle transition-colors cursor-pointer border border-border-subtle"
                         type="button"
                       >
-                        <span>{isExpanded ? 'Collapse' : 'View Details'}</span>
+                        <span>{isExpanded ? 'Hide Details' : 'Details'}</span>
                       </button>
                     )}
                   </div>
@@ -372,46 +372,46 @@ export const TestRunsTable: React.FC<TestRunsTableProps> = ({
 
                 {/* Expanded Inspection Panel */}
                 {isExpanded && (
-                  <div className="p-space-lg bg-surface-subtle flex flex-col gap-space-lg border-t border-border-subtle">
+                  <div className="p-4 sm:p-5 bg-surface-subtle flex flex-col gap-4 border-t border-border-subtle">
                     {/* Healed Banner (if healed) */}
                     {run.status === 'healed_passed' && (
-                      <div className="bg-status-healed-subtle rounded-xl p-space-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md border border-status-healed/30">
-                        <div className="flex items-center gap-space-sm">
-                          <div className="p-2 rounded-lg bg-status-healed text-on-primary flex items-center justify-center shadow-xs">
+                      <div className="bg-surface-canvas rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-status-healed/30">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-status-healed/15 text-status-healed flex items-center justify-center">
                             <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-headline-sm text-headline-sm text-text-primary font-semibold">
-                              Test Passed via Self-Healing ({run.healedCount || 1} issue resolved)
+                            <span className="text-xs sm:text-sm text-text-primary font-semibold">
+                              Passed via Autonomous Healing ({run.healedCount || 1} selector recovered)
                             </span>
-                            <span className="font-body-sm text-body-sm text-text-secondary">
-                              Synthetic selector mutation applied dynamically during Playwright execution without halting assertion tree.
+                            <span className="text-xs text-text-secondary">
+                              Playwright execution completed without halting assertion tree.
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-space-xs self-stretch sm:self-auto justify-end flex-wrap">
+                        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end flex-wrap">
                           <button
                             onClick={() => onRerunTest(run.id)}
-                            className="inline-flex items-center gap-1 px-space-sm py-1 rounded-lg bg-surface-canvas text-text-primary shadow-sm hover:bg-surface-subtle font-label-md text-label-md transition-colors cursor-pointer border border-border-subtle"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-canvas text-text-primary shadow-xs hover:bg-surface-subtle text-xs transition-colors cursor-pointer border border-border-subtle"
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[16px]">replay</span>
-                            <span>Rerun Test</span>
+                            <span className="material-symbols-outlined text-[15px]">replay</span>
+                            <span>Rerun</span>
                           </button>
                           <button
                             onClick={() => onViewInHealingQueue(run.specFile)}
-                            className="inline-flex items-center gap-1 px-space-sm py-1 rounded-lg bg-status-healed text-on-primary shadow-sm hover:opacity-90 font-label-md text-label-md transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-status-healed text-white shadow-xs hover:opacity-95 text-xs transition-all cursor-pointer font-medium"
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[16px]">visibility</span>
-                            <span>View in Healing Queue</span>
+                            <span className="material-symbols-outlined text-[15px]">visibility</span>
+                            <span>Healing Queue</span>
                           </button>
                           <button
                             onClick={() => onOpenTrace(run)}
-                            className="inline-flex items-center gap-1 px-space-sm py-1 rounded-lg bg-surface-canvas text-text-primary shadow-sm hover:bg-surface-subtle font-label-md text-label-md transition-colors cursor-pointer border border-border-subtle"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-canvas text-text-primary shadow-xs hover:bg-surface-subtle text-xs transition-colors cursor-pointer border border-border-subtle"
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[16px]">file_download</span>
+                            <span className="material-symbols-outlined text-[15px]">file_download</span>
                             <span>Trace</span>
                           </button>
                         </div>
@@ -420,27 +420,27 @@ export const TestRunsTable: React.FC<TestRunsTableProps> = ({
 
                     {/* Failed Banner (if failed) */}
                     {run.status === 'failed' && (
-                      <div className="bg-status-failure-subtle rounded-xl p-space-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md border border-status-failure/30">
-                        <div className="flex items-center gap-space-sm">
-                          <div className="p-2 rounded-lg bg-status-failure text-on-primary flex items-center justify-center shadow-xs">
+                      <div className="bg-surface-canvas rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-rose-500/30">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-rose-500/15 text-rose-500 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[20px]">error</span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-headline-sm text-headline-sm text-text-primary font-semibold">
-                              Test Assertion Halted (Threshold Protection)
+                            <span className="text-xs sm:text-sm text-text-primary font-semibold">
+                              Execution Halted • Threshold Protection
                             </span>
-                            <span className="font-body-sm text-body-sm text-text-secondary">
-                              GhostRunner discovered a potential candidate with 64% similarity, but aborted automated execution because threshold is set to 70%.
+                            <span className="text-xs text-text-secondary">
+                              Top locator match scored 64%, below the required 70% confidence threshold.
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-space-xs">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => onInvestigate(run)}
-                            className="inline-flex items-center gap-1 px-space-md py-1.5 rounded-lg bg-status-failure text-on-primary font-label-md font-semibold hover:opacity-90 transition-all cursor-pointer shadow-sm"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-500 transition-all cursor-pointer shadow-xs"
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[16px]">troubleshoot</span>
+                            <span className="material-symbols-outlined text-[15px]">troubleshoot</span>
                             <span>Investigate & Resolve</span>
                           </button>
                         </div>

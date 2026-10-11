@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RepairProposal } from '../types/domain';
 import { apiFetch, normalizeConfidenceForDisplay } from '../lib/api';
+import { DEFAULT_OWNER_ID } from '../lib/demoStore';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
@@ -41,7 +42,7 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
   onOpenTestRuns,
 }) => {
   const { user } = useAuth();
-  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
+  const ownerId = ownerIdProp || user?.id || DEFAULT_OWNER_ID;
 
   const [proposals, setProposals] = useState<RepairProposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
       setProposals((data as unknown as RepairProposal[]) || []);
     } catch (err) {
       console.warn('[HealingQueueView] Failed to load proposals:', err);
-      // Fallback: try apiFetch which uses demo store if Supabase is unconfigured
+      // Fallback: try apiFetch which uses local store if Supabase is unconfigured
       try {
         const fallback = await apiFetch<RepairProposal[]>('/repair-proposals', ownerId);
         setProposals(Array.isArray(fallback) ? fallback : []);
@@ -152,14 +153,14 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
               </span>
             )}
           </div>
-          <p className="text-text-secondary text-sm">
-            AI-generated repair proposals from Groq — review, validate, and approve to create new test versions.
+          <p className="text-text-secondary text-xs sm:text-sm">
+            Review and validate automated selector repair proposals before updating test suites.
           </p>
         </div>
         <button
           type="button"
           onClick={loadProposals}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-strong text-xs font-semibold text-text-primary hover:bg-surface-subtle transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface-canvas text-xs font-medium text-text-primary hover:bg-surface-subtle transition-all cursor-pointer shadow-xs"
         >
           <span className="material-symbols-outlined text-[15px]">refresh</span>
           Refresh
@@ -167,13 +168,13 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-1 bg-surface-subtle p-1 rounded-xl border border-border-subtle w-fit">
+      <div className="flex gap-1 bg-surface-subtle p-1 rounded-lg border border-border-subtle w-fit">
         {(['all', 'pending', 'approved', 'rejected'] as const).map((f) => (
           <button
             key={f}
             type="button"
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-all cursor-pointer ${
               filter === f
                 ? 'bg-surface-canvas text-text-primary shadow-xs border border-border-subtle'
                 : 'text-text-muted hover:text-text-primary'
@@ -181,7 +182,7 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
           >
             {f}
             {f === 'pending' && pendingCount > 0 && (
-              <span className="ml-1 text-amber-500">{pendingCount}</span>
+              <span className="ml-1 text-amber-500 font-semibold">{pendingCount}</span>
             )}
           </button>
         ))}
@@ -191,31 +192,31 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
       {loading && (
         <div className="flex flex-col gap-3 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 rounded-2xl bg-surface-canvas border border-border-subtle" />
+            <div key={i} className="h-32 rounded-xl bg-surface-canvas border border-border-subtle" />
           ))}
         </div>
       )}
 
       {/* Empty state */}
       {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
-            <span className="material-symbols-outlined text-[32px] text-text-muted">auto_fix_high</span>
+        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center bg-surface-canvas rounded-xl border border-border-subtle">
+          <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center">
+            <span className="material-symbols-outlined text-[24px] text-text-muted">auto_fix_high</span>
           </div>
           <div className="flex flex-col gap-1">
-            <h3 className="font-semibold text-text-primary">
-              {filter === 'all' ? 'No repair proposals yet' : `No ${filter} proposals`}
+            <h3 className="font-semibold text-sm text-text-primary">
+              {filter === 'all' ? 'No repair proposals' : `No ${filter} proposals`}
             </h3>
-            <p className="text-xs text-text-muted max-w-xs">
+            <p className="text-xs text-text-muted max-w-sm">
               {filter === 'all'
-                ? 'Run a test that fails — Groq will automatically analyze the failure and generate a repair proposal here.'
-                : `Switch to "All" to see proposals in other states.`}
+                ? 'When automated tests detect locator drift, proposed fixes will appear here for review.'
+                : `No proposals found with status "${filter}".`}
             </p>
           </div>
           <button
             type="button"
             onClick={onOpenTestRuns}
-            className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-95 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:opacity-95 cursor-pointer shadow-xs"
           >
             View Test Runs
           </button>
@@ -224,7 +225,7 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
 
       {/* Proposal Cards */}
       {!loading && filtered.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3.5">
           {filtered.map((proposal) => {
             const run = getRunData(proposal);
             const cat = getCategory(proposal);
@@ -234,22 +235,19 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
             return (
               <div
                 key={proposal.id}
-                className="bg-surface-canvas rounded-2xl border-2 border-amber-500/20 hover:border-amber-500/40 transition-all p-5 flex flex-col gap-4 relative overflow-hidden group"
+                className="bg-surface-canvas rounded-xl border border-border-subtle hover:border-border-strong transition-all p-4.5 flex flex-col gap-3.5 relative shadow-xs"
               >
-                {/* Amber accent bar */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
-
                 {/* Header row */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">
+                    <div className="w-8 h-8 rounded-lg bg-status-healed/10 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[17px] text-status-healed">
                         auto_fix_high
                       </span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-semibold text-sm text-text-primary">
-                        Groq Repair Proposal
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-xs sm:text-sm text-text-primary">
+                        Automated Repair Proposal
                       </span>
                       <span className="text-[11px] text-text-muted font-mono">
                         {new Date(proposal.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
@@ -260,13 +258,13 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
 
                   <div className="flex items-center gap-2 flex-wrap self-start">
                     {/* Category chip */}
-                    <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-lg bg-surface-subtle border border-border-subtle ${cat.color}`}>
+                    <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-surface-subtle border border-border-subtle ${cat.color}`}>
                       <span className="material-symbols-outlined text-[13px]">{cat.icon}</span>
                       {cat.label}
                     </span>
 
                     {/* Status chip */}
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg border uppercase ${statusCfg.color}`}>
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border uppercase ${statusCfg.color}`}>
                       {statusCfg.label}
                     </span>
                   </div>
@@ -275,19 +273,19 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
                 {/* Confidence + Reason */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-surface-container rounded-full h-1.5 overflow-hidden">
+                    <div className="flex-1 bg-surface-container rounded-full h-1 overflow-hidden">
                       <div
-                        className="h-full bg-amber-500 rounded-full transition-all duration-700"
+                        className="h-full bg-status-healed rounded-full transition-all duration-500"
                         style={{ width: `${conf}%` }}
                       />
                     </div>
-                    <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">
-                      {conf}% conf
+                    <span className="text-xs font-mono font-medium text-status-healed shrink-0">
+                      {conf}% confidence
                     </span>
                   </div>
 
-                  <p className="text-xs text-text-secondary leading-relaxed bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-800/30 p-3 rounded-xl">
-                    <span className="font-semibold text-text-primary">Root cause: </span>
+                  <p className="text-xs text-text-secondary leading-relaxed bg-surface-subtle border border-border-subtle p-3 rounded-lg">
+                    <span className="font-medium text-text-primary">Root Cause: </span>
                     {proposal.reason}
                   </p>
                 </div>

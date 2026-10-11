@@ -3,15 +3,18 @@ import { ThemeToggle } from './ThemeToggle';
 
 interface LandingPageProps {
   onLaunchConsole: (initialTab?: 'dashboard' | 'projects' | 'test-runs' | 'healing-queue' | 'settings') => void;
-  onRunDemoSuite: () => void;
+  onRunSampleSuite?: () => void;
+  onRunDemoSuite?: () => void;
   onNavigateToAuth?: (page: 'signin' | 'signup' | 'forgot-password') => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onLaunchConsole,
+  onRunSampleSuite,
   onRunDemoSuite,
   onNavigateToAuth,
 }) => {
+  const handleRunSuite = onRunSampleSuite || onRunDemoSuite || (() => {});
   const [codeTab, setCodeTab] = useState<'ts' | 'python' | 'github'>('ts');
   const [copiedInstall, setCopiedInstall] = useState(false);
   const [inspectorInterventionActive, setInspectorInterventionActive] = useState(true);
@@ -153,16 +156,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             className="h-12 inline-flex items-center justify-center gap-2 px-6 rounded-xl bg-primary text-white font-semibold text-sm shadow-md hover:bg-primary/90 transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">bolt</span>
-            <span>Start Free Trial (14 days free)</span>
+            <span>Start Free Trial</span>
           </button>
 
           <button
             type="button"
-            onClick={onRunDemoSuite}
+            onClick={handleRunSuite}
             className="h-12 inline-flex items-center justify-center gap-2 px-5 rounded-xl bg-surface-canvas text-text-primary border border-border-strong font-semibold text-sm hover:bg-surface-subtle transition-all cursor-pointer shadow-xs"
           >
             <span className="material-symbols-outlined text-[20px] text-primary">play_circle</span>
-            <span>Book Interactive Demo</span>
+            <span>Run Sample Suite</span>
           </button>
 
           {/* Copyable NPM command snippet - styled distinctly as a code block utility */}
@@ -186,7 +189,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Social Proof Logostrip */}
         <div className="mt-16 flex flex-col items-center gap-4 w-full">
           <span className="font-label-sm text-xs text-text-muted font-semibold tracking-normal">
-            Trusted by 10,000+ QA engineers & DevOps professionals at high-velocity teams
+            Trusted by testing teams at high-velocity organizations
           </span>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14 opacity-70 grayscale hover:grayscale-0 transition-all text-text-primary font-bold text-sm tracking-tight">
             <span className="flex items-center gap-1.5 hover:text-primary transition-colors">
@@ -225,7 +228,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-status-success animate-ping"></span>
               <span className="font-label-sm text-xs uppercase tracking-wider font-bold text-status-success">
-                LIVE TELEMETRY INSPECTOR
+                LIVE RUNNER TELEMETRY
               </span>
             </div>
             <div className="flex items-center gap-3 flex-wrap text-xs">
@@ -237,7 +240,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 3m 36s avg run duration
               </span>
               <span className="px-2.5 py-1 rounded-full bg-status-success-subtle text-status-success border border-status-success/30 font-medium text-xs">
-                0 Flaky Alerts staged
+                0 Flaky Failures
               </span>
             </div>
           </div>
@@ -1080,15 +1083,15 @@ jobs:
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#1d4ed8] font-bold text-sm shadow-lg hover:bg-slate-100 transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">bolt</span>
-                <span>Start Free Trial (14 Days)</span>
+                <span>Start Free Trial</span>
               </button>
 
               <button
                 type="button"
-                onClick={onRunDemoSuite}
+                onClick={handleRunSuite}
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/60 text-white font-semibold text-sm hover:bg-white/20 transition-all cursor-pointer"
               >
-                <span>Schedule Architecture Walkthrough</span>
+                <span>Run Sample Suite</span>
               </button>
             </div>
 

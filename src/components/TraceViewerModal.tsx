@@ -17,18 +17,18 @@ export const TraceViewerModal: React.FC<TraceViewerModalProps> = ({ run, onClose
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-surface-canvas rounded-2xl shadow-2xl border border-border-strong w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="px-space-lg py-space-md bg-surface-subtle border-b border-border-subtle flex items-center justify-between">
-          <div className="flex items-center gap-space-sm">
-            <span className="material-symbols-outlined text-primary text-[22px]">play_shapes</span>
+        <div className="px-4 py-3 bg-surface-subtle border-b border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-primary text-[20px]">troubleshoot</span>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-code-md text-text-primary font-bold">{run.specFile}</span>
-                <span className="font-code-sm text-status-healed bg-status-healed-subtle px-1.5 py-0.5 rounded border border-status-healed/30">
-                  Trace HAR Loaded
+                <span className="font-code-md text-sm text-text-primary font-bold">{run.specFile}</span>
+                <span className="text-[11px] font-mono text-status-healed bg-status-healed-subtle px-1.5 py-0.5 rounded border border-status-healed/30">
+                  HAR / Trace Loaded
                 </span>
               </div>
-              <span className="text-text-muted text-xs">
-                {run.traceInfo?.browser || 'Playwright Chromium Headless'} • {run.traceInfo?.viewport || '1080p'} •{' '}
+              <span className="text-text-muted text-[11px]">
+                {run.traceInfo?.browser || 'Playwright Chromium'} • {run.traceInfo?.viewport || '1080p'} •{' '}
                 {run.traceInfo?.harSize || '4.2 MB'}
               </span>
             </div>
@@ -37,9 +37,9 @@ export const TraceViewerModal: React.FC<TraceViewerModalProps> = ({ run, onClose
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-canvas transition-colors cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 

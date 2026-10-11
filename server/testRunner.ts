@@ -29,8 +29,10 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL |
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const PYTHON_BACKEND_URL =
-  process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'https://humans-hackwave3-0.vercel.app';
 const WEBHOOK_PORT = parseInt(process.env.WEBHOOK_PORT || '4000', 10);
+const WEBHOOK_PUBLIC_URL =
+  process.env.WEBHOOK_PUBLIC_URL || process.env.VITE_WEBHOOK_URL || `http://localhost:${WEBHOOK_PORT}`;
 
 function getSupabase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -266,7 +268,7 @@ export async function triggerTestRun(opts: TriggerRunOptions): Promise<void> {
             'X-User-Id': opts.projectId || 'system',
           },
           body: JSON.stringify({
-            callback_url: `http://localhost:${WEBHOOK_PORT}`,
+            callback_url: WEBHOOK_PUBLIC_URL,
             environment_ref: ref,
           }),
         });

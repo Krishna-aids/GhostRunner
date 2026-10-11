@@ -5,7 +5,7 @@
  * Reads SMEE_URL from .env automatically — no shell variable expansion needed.
  */
 
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,6 +13,30 @@ dotenv.config();
 const SMEE_URL = process.env.SMEE_URL;
 const WEBHOOK_PORT = process.env.WEBHOOK_PORT || '4000';
 const TARGET = `http://localhost:${WEBHOOK_PORT}/api/webhooks/github`;
+
+function freePortIfBusy(port: string) {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] });
+      const lines = output.trim().split('\n');
+      for (const line of lines) {
+        if (line.includes('LISTENING')) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== '0') {
+            console.log(`🧹 Port ${port} is currently in use by PID ${pid}. Automatically releasing...`);
+            execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
+            console.log(`✅ Port ${port} released.`);
+          }
+        }
+      }
+    }
+  } catch {
+    // Port is free
+  }
+}
+
+freePortIfBusy(WEBHOOK_PORT);
 
 if (!SMEE_URL) {
   console.error('❌ SMEE_URL is not set in .env');

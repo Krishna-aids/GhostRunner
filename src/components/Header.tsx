@@ -96,14 +96,14 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setSuiteMenuOpen(!suiteMenuOpen)}
-            className="flex items-center gap-space-xs px-space-sm py-1 bg-surface-subtle rounded border border-border-subtle hover:border-border-strong transition-colors text-left"
+            className="flex items-center gap-2 h-8 px-2.5 bg-surface-subtle rounded-lg border border-border-subtle hover:border-border-strong hover:bg-surface-muted transition-all text-left cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px] text-text-secondary">inventory_2</span>
-            <span className="font-code-md text-code-md text-text-primary font-medium hidden sm:inline">
+            <span className="font-mono text-xs text-text-primary font-medium hidden sm:inline">
               Acme Web App
             </span>
-            <span className="text-border-strong font-mono hidden sm:inline">/</span>
-            <span className="font-code-md text-code-md text-text-secondary">
+            <span className="text-border-strong font-mono text-xs hidden sm:inline">/</span>
+            <span className="font-mono text-xs text-text-secondary font-medium">
               {selectedSuite}
             </span>
             <span className="material-symbols-outlined text-[16px] text-text-muted ml-0.5">
@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {suiteMenuOpen && (
-            <div className="absolute left-0 mt-1.5 w-64 bg-surface-canvas border border-border-strong rounded-xl shadow-lg z-50 p-1 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute left-0 mt-1.5 w-64 bg-surface-canvas border border-border-strong rounded-xl shadow-xl z-50 p-1 flex flex-col gap-0.5 animate-fadeIn">
               <div className="px-3 py-1.5 font-label-sm text-label-sm text-text-muted uppercase tracking-wider">
                 Select Suite
               </div>
@@ -124,17 +124,17 @@ export const Header: React.FC<HeaderProps> = ({
                     onSelectSuite(s.name);
                     setSuiteMenuOpen(false);
                   }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-left text-body-sm transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-left text-body-sm transition-colors cursor-pointer ${
                     selectedSuite === s.name
                       ? 'bg-primary-container/10 text-primary font-medium'
                       : 'hover:bg-surface-subtle text-text-primary'
                   }`}
                 >
                   <div className="flex flex-col">
-                    <span className="font-code-md">{s.name}</span>
+                    <span className="font-mono text-xs font-medium">{s.name}</span>
                     <span className="text-text-muted text-[11px]">{s.app}</span>
                   </div>
-                  <span className="font-code-sm text-text-muted bg-surface-subtle px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-[11px] text-text-muted bg-surface-subtle px-1.5 py-0.5 rounded">
                     {s.tests} tests
                   </span>
                 </button>
@@ -148,21 +148,21 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setEnvMenuOpen(!envMenuOpen)}
-            className="flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-muted border border-border-subtle hover:border-border-strong transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-surface-subtle border border-border-subtle hover:border-border-strong hover:bg-surface-muted transition-all cursor-pointer"
           >
             <span
               className={`w-2 h-2 rounded-full ${
                 environments.find((e) => e.id === selectedEnv)?.color || 'bg-status-success'
               }`}
-            ></span>
-            <span className="font-label-sm text-label-sm text-text-secondary font-medium">
+            />
+            <span className="text-xs text-text-secondary font-medium">
               {selectedEnv}
             </span>
             <span className="material-symbols-outlined text-[14px] text-text-muted">expand_more</span>
           </button>
 
           {envMenuOpen && (
-            <div className="absolute left-0 mt-1.5 w-48 bg-surface-canvas border border-border-strong rounded-xl shadow-lg z-50 p-1 flex flex-col gap-0.5">
+            <div className="absolute left-0 mt-1.5 w-48 bg-surface-canvas border border-border-strong rounded-xl shadow-xl z-50 p-1 flex flex-col gap-0.5 animate-fadeIn">
               <div className="px-3 py-1.5 font-label-sm text-label-sm text-text-muted uppercase tracking-wider">
                 Target Environment
               </div>
@@ -174,13 +174,13 @@ export const Header: React.FC<HeaderProps> = ({
                     onSelectEnv(env.id);
                     setEnvMenuOpen(false);
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-left font-label-md text-label-md transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-left text-xs transition-colors cursor-pointer ${
                     selectedEnv === env.id
                       ? 'bg-surface-container text-text-primary font-semibold'
                       : 'hover:bg-surface-subtle text-text-secondary'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${env.color}`}></span>
+                  <span className={`w-2 h-2 rounded-full ${env.color}`} />
                   <span>{env.label}</span>
                 </button>
               ))}
@@ -190,31 +190,45 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right zone: Engine status badge, Notifications & Profile */}
-      <div className="flex items-center gap-space-sm sm:gap-space-lg">
-        {/* Distinct Status Indicators: Split into Engine State and Self-Healing Toggle */}
-        <div className="hidden md:flex items-center gap-2">
-          {/* 1. Live Engine Status Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-subtle border border-border-subtle text-xs font-medium text-text-secondary select-none">
-            <span className={`w-2 h-2 rounded-full ${engineActive ? 'bg-status-success animate-pulse' : 'bg-text-muted'}`} />
-            <span>{engineActive ? 'Engine Active' : 'Engine Paused'}</span>
-          </div>
-
-          {/* 2. Interactive Self-Healing Mode Toggle Button */}
-          <button
-            type="button"
-            onClick={onToggleEngine}
-            aria-label={`Toggle self-healing: currently ${engineActive ? 'enabled' : 'disabled'}`}
-            title="Click to toggle autonomous self-healing mode"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer ${
+      <div className="flex items-center gap-space-sm sm:gap-space-md">
+        {/* Unified Self-Healing Engine Status & Interactive Toggle */}
+        <button
+          type="button"
+          onClick={onToggleEngine}
+          aria-label={`Autonomous self-healing is currently ${engineActive ? 'active' : 'paused'}. Click to toggle.`}
+          title={
+            engineActive
+              ? 'Self-Healing Engine: Active • Click to pause autonomous healing'
+              : 'Self-Healing Engine: Paused • Click to resume autonomous healing'
+          }
+          className={`hidden md:inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-medium border transition-all duration-150 cursor-pointer select-none ${
+            engineActive
+              ? 'bg-status-healed-subtle/80 border-status-healed/40 text-status-healed hover:bg-status-healed-subtle hover:border-status-healed/60 shadow-xs'
+              : 'bg-surface-subtle border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-muted'
+          }`}
+        >
+          <span className="relative flex h-2 w-2">
+            {engineActive && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75" />
+            )}
+            <span
+              className={`relative inline-flex rounded-full h-2 w-2 ${
+                engineActive ? 'bg-status-success' : 'bg-text-muted'
+              }`}
+            />
+          </span>
+          <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
+          <span>Self-Healing</span>
+          <span
+            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
               engineActive
-                ? 'bg-status-healed-subtle border-status-healed/40 text-status-healed hover:bg-status-healed/20'
-                : 'bg-surface-muted border-border-subtle text-text-muted hover:text-text-primary hover:border-border-strong'
+                ? 'bg-status-healed/20 text-status-healed'
+                : 'bg-surface-muted text-text-muted border border-border-subtle'
             }`}
           >
-            <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
-            <span>Self-Healing: {engineActive ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
+            {engineActive ? 'Active' : 'Paused'}
+          </span>
+        </button>
 
         <div className="flex items-center gap-space-sm">
           {/* Dark / Light Theme Toggle */}
@@ -239,57 +253,57 @@ export const Header: React.FC<HeaderProps> = ({
 
             {notificationsOpen && (
               <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface-canvas border border-border-strong rounded-xl shadow-xl z-50 p-space-sm flex flex-col gap-2">
-                <div className="flex items-center justify-between pb-1 border-b border-border-subtle">
-                  <span className="font-headline-sm text-[14px] font-semibold text-text-primary">
-                    Real-Time Healing Notifications
+                <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle">
+                  <span className="font-headline-sm text-xs font-semibold text-text-primary">
+                    Live Diagnostics & Interventions
                   </span>
-                  <span className="font-code-sm text-status-healed bg-status-healed-subtle px-1.5 py-0.5 rounded">
+                  <span className="font-code-sm text-status-healed bg-status-healed-subtle px-1.5 py-0.5 rounded text-[11px]">
                     Active
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
-                  <div className="p-2 rounded-lg bg-status-healed-subtle/50 border border-status-healed/20 flex items-start gap-2">
+                  <div className="p-2.5 rounded-lg bg-surface-subtle border border-border-subtle flex items-start gap-2.5">
                     <span className="material-symbols-outlined text-[16px] text-status-healed mt-0.5">
                       auto_fix_high
                     </span>
-                    <div className="flex flex-col text-left">
-                      <span className="font-label-md text-text-primary text-[12px] font-semibold">
-                        Selector Healed: test_checkout_flow.spec.ts
+                    <div className="flex flex-col text-left min-w-0">
+                      <span className="font-label-md text-text-primary text-xs font-medium truncate">
+                        Locator Healed • test_checkout_flow.spec.ts
                       </span>
-                      <span className="font-code-sm text-[11px] text-text-secondary">
-                        button#checkout-submit ➔ button[data-testid="place-order-cta"] (94% conf)
+                      <span className="font-code-sm text-[11px] text-text-secondary truncate mt-0.5">
+                        button#checkout-submit ➔ [data-testid="place-order-cta"] (94%)
                       </span>
-                      <span className="text-text-muted text-[10px] mt-0.5">12 minutes ago</span>
+                      <span className="text-text-muted text-[10px] mt-1">12m ago</span>
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-surface-subtle border border-border-subtle flex items-start gap-2">
+                  <div className="p-2.5 rounded-lg bg-surface-subtle border border-border-subtle flex items-start gap-2.5">
                     <span className="material-symbols-outlined text-[16px] text-status-warning mt-0.5">
                       warning
                     </span>
-                    <div className="flex flex-col text-left">
-                      <span className="font-label-md text-text-primary text-[12px] font-semibold">
-                        Heal Flagged for Review: test_inventory_modal.spec.ts
+                    <div className="flex flex-col text-left min-w-0">
+                      <span className="font-label-md text-text-primary text-xs font-medium truncate">
+                        Review Flagged • test_inventory_modal.spec.ts
                       </span>
-                      <span className="font-body-sm text-[11px] text-text-secondary">
-                        Confidence 64% below safety threshold 70%. Routed to Healing Queue.
+                      <span className="font-body-sm text-[11px] text-text-secondary mt-0.5">
+                        Score 64% is below 70% threshold. Sent to healing queue.
                       </span>
-                      <span className="text-text-muted text-[10px] mt-0.5">1 hour ago</span>
+                      <span className="text-text-muted text-[10px] mt-1">1h ago</span>
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-surface-subtle border border-border-subtle flex items-start gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-status-healed mt-0.5">
+                  <div className="p-2.5 rounded-lg bg-surface-subtle border border-border-subtle flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-[16px] text-status-success mt-0.5">
                       check_circle
                     </span>
-                    <div className="flex flex-col text-left">
-                      <span className="font-label-md text-text-primary text-[12px] font-semibold">
-                        PR #402 merged into staging
+                    <div className="flex flex-col text-left min-w-0">
+                      <span className="font-label-md text-text-primary text-xs font-medium truncate">
+                        PR #402 Synced
                       </span>
-                      <span className="font-body-sm text-[11px] text-text-secondary">
-                        2 auto-healed selectors written back to codebase.
+                      <span className="font-body-sm text-[11px] text-text-secondary mt-0.5">
+                        2 self-healed selectors updated in repository.
                       </span>
-                      <span className="text-text-muted text-[10px] mt-0.5">2 hours ago</span>
+                      <span className="text-text-muted text-[10px] mt-1">2h ago</span>
                     </div>
                   </div>
                 </div>

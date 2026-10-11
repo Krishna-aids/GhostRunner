@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DEMO_OWNER_ID } from '../../lib/demoStore';
+import { DEFAULT_OWNER_ID } from '../../lib/demoStore';
 
 interface LoginPageProps {
   onLoginSuccess: (ownerId: string, email: string, name: string) => void;
@@ -13,7 +13,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onExploreP
     setLoading(true);
     // Simulate Supabase OAuth redirect or completion
     setTimeout(() => {
-      onLoginSuccess(DEMO_OWNER_ID, 'krishnakumrawat1406@gmail.com', 'Krishna Kumrawat');
+      onLoginSuccess(DEFAULT_OWNER_ID, 'elena.rostova@acme.corp', 'Elena Rostova');
       setLoading(false);
     }, 400);
   };
@@ -40,7 +40,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onExploreP
               </span>
             </h1>
             <p className="text-xs text-neutral-400 max-w-xs">
-              Intent-Aware Self-Healing E2E Testing Platform
+              Self-Healing E2E Test Automation
             </p>
           </div>
         </div>
@@ -75,16 +75,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onExploreP
             <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
           </button>
 
-          {/* Quick Demo Bypass Button */}
+          {/* Quick Access Button */}
           <button
             type="button"
-            onClick={() => onLoginSuccess(DEMO_OWNER_ID, 'demo-lead@ghostrunner.dev', 'Demo QA Lead')}
+            onClick={() => onLoginSuccess(DEFAULT_OWNER_ID, 'elena.rostova@acme.corp', 'Elena Rostova')}
             className="w-full py-2.5 px-4 rounded-xl border border-neutral-800 bg-neutral-900/60 hover:bg-neutral-800 text-neutral-300 font-medium text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-[16px] text-emerald-400">
               play_circle
             </span>
-            <span>Instant Demo Bypass (One-Click)</span>
+            <span>Instant Access (One-Click)</span>
           </button>
         </div>
 
@@ -97,7 +97,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onExploreP
               onClick={onExplorePublic}
               className="text-neutral-400 hover:text-white underline cursor-pointer"
             >
-              Back to Overview & Marketing
+              Back to Home
             </button>
           )}
         </div>

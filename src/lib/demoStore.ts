@@ -8,13 +8,14 @@ import {
   ActionPlan,
 } from '../types/domain';
 
-export const DEMO_OWNER_ID = 'user-demo-1406';
+export const DEFAULT_OWNER_ID = 'user-lead-1406';
+export const DEMO_OWNER_ID = DEFAULT_OWNER_ID;
 
 const initialActionPlanV1: ActionPlan = {
   steps: [
     {
       action: 'navigate',
-      target: { role: null, name: null, text: null, url: 'https://store.demo.app/cart', selector: null },
+      target: { role: null, name: null, text: null, url: 'https://store.acme.app/cart', selector: null },
       value: null,
       timeout_ms: 5000,
     },
@@ -65,7 +66,7 @@ const initialProjects: Project[] = [
     owner_id: DEMO_OWNER_ID,
     name: 'E-Commerce Checkout',
     repo_metadata: {
-      github_url: 'github.com/ghoostrunner/demo-checkout-store',
+      github_url: 'github.com/ghoostrunner/checkout-store',
       stack: 'Next.js 14 ✅',
       components_count: 23,
       routes_count: 12,
@@ -119,7 +120,7 @@ const initialRuns: TestRun[] = [
     classification: 'LOCATOR_DRIFT',
     confidence: 0.87,
     summary: 'Button selector .checkout-btn not found. Element moved.',
-    environment_ref: 'demo-env',
+    environment_ref: 'staging-env',
     started_at: new Date(Date.now() - 600000).toISOString(),
     finished_at: new Date(Date.now() - 592000).toISOString(),
     parent_run_id: null,
@@ -135,7 +136,7 @@ const initialRuns: TestRun[] = [
     classification: null,
     confidence: 0.99,
     summary: 'Test executed successfully without locator intervention.',
-    environment_ref: 'demo-env',
+    environment_ref: 'staging-env',
     started_at: new Date(Date.now() - 86400000).toISOString(),
     finished_at: new Date(Date.now() - 86400000 + 11200).toISOString(),
     parent_run_id: null,
@@ -195,7 +196,7 @@ const initialProposals: Record<string, RepairProposal[]> = {
         steps: [
           {
             action: 'navigate',
-            target: { role: null, name: null, text: null, url: 'https://store.demo.app/cart', selector: null },
+            target: { role: null, name: null, text: null, url: 'https://store.acme.app/cart', selector: null },
             value: null,
             timeout_ms: 5000,
           },
@@ -295,7 +296,7 @@ class DemoStore {
       version_number: 1,
       action_plan: {
         steps: [
-          { action: 'navigate', target: 'https://store.demo.app', value: null, timeout_ms: 5000 },
+          { action: 'navigate', target: 'https://store.acme.app', value: null, timeout_ms: 5000 },
           { action: 'click', target: '.cta-button', value: null, timeout_ms: 5000 },
         ],
         required_assertions: parsedAssertions,
@@ -314,7 +315,7 @@ class DemoStore {
       name,
       original_intent: originalIntent,
       required_assertions: parsedAssertions,
-      preconditions: { env: 'demo-env' },
+      preconditions: { env: 'staging-env' },
       active_version_id: verId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -346,7 +347,7 @@ class DemoStore {
       classification: null,
       confidence: null,
       summary: 'Preparing test execution environment and browser context...',
-      environment_ref: 'demo-env',
+      environment_ref: 'staging-env',
       started_at: new Date().toISOString(),
       finished_at: null,
       parent_run_id: null,
@@ -387,7 +388,7 @@ class DemoStore {
           steps: [
             {
               action: 'navigate',
-              target: { role: null, name: null, text: null, url: 'https://store.demo.app/cart', selector: null },
+              target: { role: null, name: null, text: null, url: 'https://store.acme.app/cart', selector: null },
               value: null,
               timeout_ms: 5000,
             },

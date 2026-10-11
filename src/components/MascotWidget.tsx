@@ -84,8 +84,8 @@ export const MascotWidget: React.FC<MascotWidgetProps> = ({ onInteract }) => {
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-1.5 font-semibold text-text-primary">
-              <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
-              <span>Ghosty • Self-Healing AI</span>
+              <span className="w-2 h-2 rounded-full bg-status-success"></span>
+              <span>Ghosty • AI Diagnostics</span>
             </div>
             <button
               type="button"
@@ -101,16 +101,16 @@ export const MascotWidget: React.FC<MascotWidgetProps> = ({ onInteract }) => {
             </button>
           </div>
           <p className="mt-1.5 text-text-secondary leading-relaxed">
-            I automatically heal broken Playwright & Cypress test selectors in real-time. Click me to chat or test locators!
+            Autonomous selector healing active. Click to inspect locator diffs or diagnose flaky tests.
           </p>
           <div className="mt-2.5 pt-2 border-t border-border-subtle flex items-center justify-between text-[11px] text-text-muted">
-            <span className="font-mono text-primary font-medium">99.4% Auto-Heal Rate</span>
+            <span className="font-mono text-status-healed font-medium">99.4% Recovery Rate</span>
             <button
               type="button"
               className="text-primary font-medium hover:underline cursor-pointer flex items-center gap-1"
               onClick={handleMascotClick}
             >
-              <span>Open Chat</span>
+              <span>Assistant</span>
               <span className="material-symbols-outlined text-[12px]">forum</span>
             </button>
           </div>

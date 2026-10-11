@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TestRun, EvidenceArtifact, RepairProposal, ActionPlan } from '../../types/domain';
 import { apiFetch, normalizeConfidenceForDisplay, normalizeConfidenceForAPI } from '../../lib/api';
+import { DEFAULT_OWNER_ID } from '../../lib/demoStore';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { RunStatusBadge } from '../shared/RunStatusBadge';
@@ -22,7 +23,7 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
   onRerunSuccess,
 }) => {
   const { user } = useAuth();
-  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
+  const ownerId = ownerIdProp || user?.id || DEFAULT_OWNER_ID;
   const [run, setRun] = useState<TestRun | null>(null);
   const [artifacts, setArtifacts] = useState<EvidenceArtifact[]>([]);
   const [proposals, setProposals] = useState<RepairProposal[]>([]);
@@ -196,10 +197,10 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
           className="text-text-muted hover:text-text-primary flex items-center gap-1 cursor-pointer transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          <span>Back to Test Specification</span>
+          <span>Test Specification</span>
         </button>
         <span className="text-border-strong">/</span>
-        <span className="font-semibold text-text-primary">Run #{run.run_number || 1} Detail</span>
+        <span className="font-semibold text-text-primary">Run #{run.run_number || 1}</span>
       </div>
 
       {/* SECTION A — Run Overview */}
@@ -261,7 +262,7 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-base text-text-primary">Self-Healing Repairs</h2>
+              <h2 className="font-bold text-base text-text-primary">Repair Proposals</h2>
               <span className="text-xs font-mono text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
                 {proposals.length} Proposed
               </span>
@@ -274,7 +275,7 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-strong text-xs font-semibold text-text-primary hover:bg-surface-subtle transition-all cursor-pointer shadow-xs"
               >
                 <span className="material-symbols-outlined text-[15px]">add</span>
-                <span>+ Create Repair Proposal</span>
+                <span>New Proposal</span>
               </button>
             )}
           </div>
@@ -282,7 +283,7 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
           {proposals.length === 0 ? (
             <div className="p-6 rounded-2xl bg-surface-canvas border border-border-subtle text-center text-xs text-text-muted flex flex-col items-center gap-2">
               <span className="material-symbols-outlined text-[24px]">build_circle</span>
-              <span>No repair proposals available yet. Click &quot;+ Create Repair Proposal&quot; to formulate one.</span>
+              <span>No repair proposals formulated for this run.</span>
             </div>
           ) : (
             <div className="flex flex-col gap-4">

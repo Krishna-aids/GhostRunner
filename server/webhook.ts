@@ -25,7 +25,7 @@ const GITHUB_APP_ID = process.env.GITHUB_APP_ID || '';
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'https://humans-hackwave3-0.vercel.app';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -305,12 +305,19 @@ async function handleCheckSuite(event: WebhookEvent): Promise<void> {
 // ─── Express App ───────────────────────────────────────────────────────────
 const app = express();
 
-// CORS — allow frontend to call API
-app.use((_req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', FRONTEND_URL);
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+// CORS — allow deployed frontend, localhost, and tunnels
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  // If origin is present, allow it if it matches FRONTEND_URL, localhost, or vercel.app
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+  }
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Id');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
   next();
 });
 
@@ -393,11 +400,13 @@ app.get('/api/runs/:runId/stream', (req: Request, res: Response) => {
   const { runId } = req.params;
 
   // SSE headers
+  const reqOrigin = (req.headers.origin as string) || FRONTEND_URL;
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': FRONTEND_URL,
+    'Access-Control-Allow-Origin': reqOrigin,
+    'Access-Control-Allow-Credentials': 'true',
   });
 
   // Send a heartbeat comment immediately so the client knows it's connected
@@ -513,6 +522,26 @@ app.post('/api/repair-proposals/:proposalId/approve', async (req, res) => {
   res.json({ success: true, newVersionId: (newVersion as any).id, message: 'Test Version v2 created and promoted.' });
 });
 
+app.get('/', (_req: Request, res: Response) => {
+  res.json({
+    service: 'ghostrunner-webhook',
+    status: 'online',
+    version: '1.0.0',
+    publicUrl: process.env.WEBHOOK_PUBLIC_URL || process.env.VITE_WEBHOOK_URL || `http://localhost:${PORT}`,
+    backendUrl: PYTHON_BACKEND_URL,
+    health: '/health',
+    endpoints: [
+      'POST /api/webhooks/github',
+      'POST /api/runs/trigger',
+      'GET  /api/runs/:runId/stream',
+      'POST /api/runs/:runId/events',
+      'POST /api/repair-proposals/:proposalId/approve',
+      'GET  /api/auth/github/callback',
+      'GET  /health',
+    ],
+  });
+});
+
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
@@ -520,6 +549,7 @@ app.get('/health', (_req: Request, res: Response) => {
     appId: GITHUB_APP_ID || 'not-configured',
     supabase: Boolean(SUPABASE_URL),
     groq: Boolean(process.env.GROQ_API_KEY),
+    backendUrl: PYTHON_BACKEND_URL,
     uptime: process.uptime(),
   });
 });

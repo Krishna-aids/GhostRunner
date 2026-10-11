@@ -22,9 +22,9 @@ export const EvidenceGallery: React.FC<EvidenceGalleryProps> = ({ artifacts }) =
             <span className="material-symbols-outlined text-[18px]">find_in_page</span>
           </div>
           <div className="flex flex-col">
-            <h3 className="font-semibold text-sm text-text-primary">Evidence &amp; Artifacts</h3>
+            <h3 className="font-semibold text-sm text-text-primary">Artifacts &amp; Evidence</h3>
             <span className="text-[11px] text-text-muted">
-              {artifacts.length} captured trace artifacts during failure execution
+              {artifacts.length} execution artifacts captured
             </span>
           </div>
         </div>
@@ -34,7 +34,7 @@ export const EvidenceGallery: React.FC<EvidenceGalleryProps> = ({ artifacts }) =
       {screenshots.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-xs font-mono font-medium text-text-muted uppercase tracking-wider">
-            Failure Screenshots (Click to Expand)
+            Screenshots
           </span>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {screenshots.map((s) => (
@@ -78,7 +78,7 @@ export const EvidenceGallery: React.FC<EvidenceGalleryProps> = ({ artifacts }) =
       {otherArtifacts.length > 0 && (
         <div className="flex flex-col gap-2 pt-2 border-t border-border-subtle">
           <span className="text-xs font-mono font-medium text-text-muted uppercase tracking-wider">
-            Diagnostic Files &amp; Downloads
+            Diagnostics
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {otherArtifacts.map((art) => (

@@ -116,7 +116,7 @@ function AppContent() {
     initialParsed.testId || 'test-checkout-flow'
   );
   const [selectedRunId, setSelectedRunId] = useState<string>(
-    initialParsed.runId || 'run-demo-2'
+    initialParsed.runId || 'run-102'
   );
 
   // ── Handle GitHub OAuth callback at root level ───────────────────────────
@@ -174,13 +174,53 @@ function AppContent() {
 
   // App internal tab navigation (Dashboard, Projects, Test Runs, Healing Queue, Settings)
   const [currentTab, setCurrentTab] = useState<AppTab>(getInitialTab);
-  const [testRuns, setTestRuns] = useState<TestRun[]>(INITIAL_TEST_RUNS);
-  const [healingQueue, setHealingQueue] = useState<HealingQueueItem[]>(INITIAL_HEALING_QUEUE);
-  const [metrics, setMetrics] = useState<MetricSummary>(INITIAL_METRICS);
+  const [testRuns, setTestRuns] = useState<TestRun[]>(() => {
+    try {
+      const saved = localStorage.getItem('ghostrunner_test_runs');
+      return saved ? JSON.parse(saved) : INITIAL_TEST_RUNS;
+    } catch {
+      return INITIAL_TEST_RUNS;
+    }
+  });
+  const [healingQueue, setHealingQueue] = useState<HealingQueueItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('ghostrunner_healing_queue');
+      return saved ? JSON.parse(saved) : INITIAL_HEALING_QUEUE;
+    } catch {
+      return INITIAL_HEALING_QUEUE;
+    }
+  });
+  const [metrics, setMetrics] = useState<MetricSummary>(() => {
+    try {
+      const saved = localStorage.getItem('ghostrunner_metrics');
+      return saved ? JSON.parse(saved) : INITIAL_METRICS;
+    } catch {
+      return INITIAL_METRICS;
+    }
+  });
   const [engineActive, setEngineActive] = useState<boolean>(true);
   const [selectedSuite, setSelectedSuite] = useState<string>('checkout-suite');
   const [selectedEnv, setSelectedEnv] = useState<string>('Staging v2.18');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+
+  // Sync test runs, healing queue, and metrics to localStorage for persistence
+  useEffect(() => {
+    try {
+      localStorage.setItem('ghostrunner_test_runs', JSON.stringify(testRuns));
+    } catch {}
+  }, [testRuns]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ghostrunner_healing_queue', JSON.stringify(healingQueue));
+    } catch {}
+  }, [healingQueue]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ghostrunner_metrics', JSON.stringify(metrics));
+    } catch {}
+  }, [metrics]);
 
   // ── Load real Supabase data when authenticated ────────────────────────────
   const loadSupabaseData = useCallback(async () => {
@@ -242,7 +282,7 @@ function AppContent() {
         });
       }
     } catch (err) {
-      console.warn('[GhostRunner] Failed to load Supabase dashboard data, using demo data.', err);
+      console.warn('[GhostRunner] Using local persistent store for dashboard data.', err);
     }
   }, [user]);
 
@@ -288,7 +328,7 @@ function AppContent() {
       setSelectedTestId(tId);
       path = `/tests/${tId}`;
     } else if (newRoute === 'run-detail') {
-      const rId = options?.id || selectedRunId || 'run-demo-2';
+      const rId = options?.id || selectedRunId || 'run-102';
       setSelectedRunId(rId);
       path = `/runs/${rId}`;
     } else if (newRoute === 'app') {
@@ -436,6 +476,10 @@ function AppContent() {
             } else {
               navigateTo('app', { tab: tab || 'projects' });
             }
+          }}
+          onRunSampleSuite={() => {
+            navigateTo('projects');
+            setRunSuiteModalOpen(true);
           }}
           onRunDemoSuite={() => {
             navigateTo('projects');

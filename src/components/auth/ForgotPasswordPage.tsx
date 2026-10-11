@@ -6,12 +6,14 @@ interface ForgotPasswordPageProps {
   onNavigateSignIn: () => void;
   onNavigateHome: () => void;
   onLaunchDemoConsole?: () => void;
+  onLaunchConsole?: () => void;
 }
 
 export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   onNavigateSignIn,
   onNavigateHome,
   onLaunchDemoConsole,
+  onLaunchConsole,
 }) => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   return (
     <AuthLayout
       onNavigateHome={onNavigateHome}
-      onLaunchDemoConsole={onLaunchDemoConsole}
+      onLaunchConsole={onLaunchConsole || onLaunchDemoConsole}
     >
       {/* Title & Description */}
       <div className="text-center mb-6">

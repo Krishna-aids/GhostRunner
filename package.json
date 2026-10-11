@@ -8,6 +8,7 @@
     "dev:all": "npx -y concurrently \"npm run dev\" \"npm run webhook\"",
     "webhook": "tsx server/webhook.ts",
     "webhook:dev": "tsx server/dev.ts",
+    "webhook:ngrok": "tsx server/dev-ngrok.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

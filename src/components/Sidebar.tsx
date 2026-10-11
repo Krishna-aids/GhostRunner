@@ -100,8 +100,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Navigation Section */}
           <div className="p-space-md">
-            <div className="px-space-sm py-space-xs font-label-sm text-label-sm uppercase tracking-wider text-text-muted">
-              Navigation
+            <div className="px-space-sm py-space-xs font-label-sm text-[11px] uppercase tracking-wider text-text-muted font-medium">
+              Platform
             </div>
             <nav className="flex flex-col gap-1 mt-1">
               {/* Dashboard */}
@@ -111,15 +111,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectTab('dashboard');
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center justify-between px-space-sm py-space-sm rounded-lg transition-colors text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between px-space-sm py-2 rounded-lg transition-colors text-left cursor-pointer ${
                   currentTab === 'dashboard'
-                    ? 'bg-primary-container text-on-primary font-medium shadow-sm'
+                    ? 'bg-primary/10 text-primary font-medium border border-primary/20'
                     : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
                 }`}
               >
                 <div className="flex items-center gap-space-sm">
                   <span className="material-symbols-outlined text-[18px]">grid_view</span>
-                  <span className="font-label-md text-label-md">Dashboard</span>
+                  <span className="font-label-md text-sm">Dashboard</span>
                 </div>
               </button>
 
@@ -130,15 +130,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectTab('projects');
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center justify-between px-space-sm py-space-sm rounded-lg transition-colors text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between px-space-sm py-2 rounded-lg transition-colors text-left cursor-pointer ${
                   currentTab === 'projects'
-                    ? 'bg-primary-container text-on-primary font-medium shadow-sm'
+                    ? 'bg-primary/10 text-primary font-medium border border-primary/20'
                     : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
                 }`}
               >
                 <div className="flex items-center gap-space-sm">
                   <span className="material-symbols-outlined text-[18px]">folder_special</span>
-                  <span className="font-label-md text-label-md">Projects</span>
+                  <span className="font-label-md text-sm">Projects</span>
                 </div>
               </button>
 
@@ -149,15 +149,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectTab('test-runs');
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center justify-between px-space-sm py-space-sm rounded-lg transition-colors text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between px-space-sm py-2 rounded-lg transition-colors text-left cursor-pointer ${
                   currentTab === 'test-runs'
-                    ? 'bg-primary-container text-on-primary font-medium shadow-sm'
+                    ? 'bg-primary/10 text-primary font-medium border border-primary/20'
                     : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
                 }`}
               >
                 <div className="flex items-center gap-space-sm">
                   <span className="material-symbols-outlined text-[18px]">play_circle</span>
-                  <span className="font-label-md text-label-md">Test Runs</span>
+                  <span className="font-label-md text-sm">Test Runs</span>
                 </div>
               </button>
 
@@ -168,24 +168,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectTab('healing-queue');
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center justify-between px-space-sm py-space-sm rounded-lg transition-colors text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between px-space-sm py-2 rounded-lg transition-colors text-left cursor-pointer ${
                   currentTab === 'healing-queue'
-                    ? 'bg-primary-container text-on-primary font-medium shadow-sm'
+                    ? 'bg-primary/10 text-primary font-medium border border-primary/20'
                     : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
                 }`}
               >
                 <div className="flex items-center gap-space-sm">
                   <span className="material-symbols-outlined text-[18px]">auto_fix_high</span>
-                  <span className="font-label-md text-label-md">Healing Queue</span>
+                  <span className="font-label-md text-sm">Healing Queue</span>
                 </div>
                 {healingCount > 0 && (
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-bold shadow-xs transition-all ${
-                      currentTab === 'healing-queue'
-                        ? 'bg-white text-primary font-extrabold'
-                        : 'bg-primary text-white font-bold'
-                    }`}
-                  >
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                     {healingCount}
                   </span>
                 )}
@@ -198,15 +192,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectTab('settings');
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center justify-between px-space-sm py-space-sm rounded-lg transition-colors text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between px-space-sm py-2 rounded-lg transition-colors text-left cursor-pointer ${
                   currentTab === 'settings'
-                    ? 'bg-primary-container text-on-primary font-medium shadow-sm'
+                    ? 'bg-primary/10 text-primary font-medium border border-primary/20'
                     : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
                 }`}
               >
                 <div className="flex items-center gap-space-sm">
                   <span className="material-symbols-outlined text-[18px]">tune</span>
-                  <span className="font-label-md text-label-md">Settings</span>
+                  <span className="font-label-md text-sm">Settings</span>
                 </div>
               </button>
             </nav>
