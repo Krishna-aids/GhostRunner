@@ -1,6 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ProjectItem, AnalysisStep, GitHubRepoItem } from '../types';
-import { INITIAL_PROJECTS, SAMPLE_GITHUB_REPOSITORIES } from '../data/mockData';
+import { INITIAL_PROJECTS } from '../data/mockData';
+import {
+  initiateGitHubOAuth,
+  handleOAuthCallback,
+  getStoredGitHubAuth,
+  clearGitHubAuth,
+  fetchGitHubRepos,
+  formatRelativeTime,
+  type GitHubRepo,
+} from '../services/githubService';
 
 interface ConnectProjectViewProps {
   onOpenTestFlow: (projectName?: string) => void;
@@ -23,8 +32,92 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
   // Git provider: 'github' | 'gitlab' | 'bitbucket'
   const [gitProvider, setGitProvider] = useState<'github' | 'gitlab' | 'bitbucket'>('github');
   const [isGitConnected, setIsGitConnected] = useState(false);
+  const [githubUsername, setGithubUsername] = useState<string>('');
+  const [githubRepos, setGithubRepos] = useState<GitHubRepo[]>([]);
+  const [reposLoading, setReposLoading] = useState(false);
+  const [reposError, setReposError] = useState<string>('');
   const [repoSearch, setRepoSearch] = useState('');
-  const [selectedRepoId, setSelectedRepoId] = useState<string>('repo-1');
+  const [selectedRepoId, setSelectedRepoId] = useState<string>('');
+
+  // Check for existing GitHub auth or OAuth callback on mount
+  useEffect(() => {
+    // First check if we're returning from OAuth
+    const oauthResult = handleOAuthCallback();
+    if (oauthResult) {
+      setIsGitConnected(true);
+      setGithubUsername(oauthResult.username);
+      setActiveStage('github_select');
+      loadGitHubRepos(oauthResult.token);
+      return;
+    }
+
+    // Check for existing stored auth
+    const stored = getStoredGitHubAuth();
+    if (stored) {
+      setIsGitConnected(true);
+      setGithubUsername(stored.username);
+    }
+  }, []);
+
+  // Load repos from GitHub API
+  const loadGitHubRepos = async (token: string) => {
+    setReposLoading(true);
+    setReposError('');
+    try {
+      const repos = await fetchGitHubRepos(token);
+      setGithubRepos(repos);
+      if (repos.length > 0) {
+        setSelectedRepoId(repos[0].id.toString());
+      }
+    } catch (err) {
+      setReposError(err instanceof Error ? err.message : 'Failed to fetch repositories');
+    } finally {
+      setReposLoading(false);
+    }
+  };
+
+  // Convert GitHub API repo to our internal GitHubRepoItem type
+  const mapGitHubRepoToItem = (repo: GitHubRepo): GitHubRepoItem => ({
+    id: repo.id.toString(),
+    name: repo.name,
+    fullName: repo.full_name,
+    owner: repo.owner.login,
+    isPrivate: repo.private,
+    defaultBranch: repo.default_branch,
+    updatedAt: formatRelativeTime(repo.updated_at),
+    language: repo.language || 'Unknown',
+    stars: repo.stargazers_count,
+    detectedFrameworkHint: repo.language === 'TypeScript' || repo.language === 'JavaScript'
+      ? 'Possible Playwright/Cypress'
+      : repo.language === 'Python'
+      ? 'Possible pytest'
+      : 'Scan required',
+  });
+
+  // Filtered repositories — search through real GitHub repos
+  const filteredRepos = githubRepos
+    .map(mapGitHubRepoToItem)
+    .filter(
+      (r) =>
+        r.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
+        r.fullName.toLowerCase().includes(repoSearch.toLowerCase()) ||
+        r.language.toLowerCase().includes(repoSearch.toLowerCase())
+    );
+
+  // Trigger GitHub OAuth flow
+  const handleStartGitHubConnect = () => {
+    const stored = getStoredGitHubAuth();
+    if (stored) {
+      // Already authenticated, go straight to repo selection
+      setIsGitConnected(true);
+      setGithubUsername(stored.username);
+      setActiveStage('github_select');
+      loadGitHubRepos(stored.token);
+    } else {
+      // Redirect to GitHub OAuth
+      initiateGitHubOAuth();
+    }
+  };
 
   // ZIP Upload state
   const [uploadedFile, setUploadedFile] = useState<{
@@ -44,45 +137,20 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
     language: string;
     framework: string;
   }>({
-    name: 'ShopFlow Web',
+    name: '',
     source: 'github',
-    repoName: 'acme-corp/shopflow-web',
+    repoName: '',
     language: 'TypeScript',
     framework: 'Playwright',
   });
 
   // Analysis steps simulation state
   const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
-    {
-      stepNumber: 1,
-      title: 'Import Project',
-      description: 'Retrieve selected repository or unpack uploaded ZIP archive safely.',
-      status: 'pending',
-    },
-    {
-      stepNumber: 2,
-      title: 'Analyze Repository',
-      description: 'Inspect directory structure and identify source code and config files.',
-      status: 'pending',
-    },
-    {
-      stepNumber: 3,
-      title: 'Detect Testing Framework',
-      description: 'Identify supported testing frameworks (Playwright, Cypress, Selenium).',
-      status: 'pending',
-    },
-    {
-      stepNumber: 4,
-      title: 'Prepare Test Environment',
-      description: 'Verify setup requirements and locate test configuration files.',
-      status: 'pending',
-    },
-    {
-      stepNumber: 5,
-      title: 'Ready to Create Test Flow',
-      description: 'Summarize analysis and prepare dynamic self-healing hooks.',
-      status: 'pending',
-    },
+    { stepNumber: 1, title: 'Import Project', description: 'Retrieve selected repository or unpack uploaded ZIP archive safely.', status: 'pending' },
+    { stepNumber: 2, title: 'Analyze Repository', description: 'Inspect directory structure and identify source code and config files.', status: 'pending' },
+    { stepNumber: 3, title: 'Detect Testing Framework', description: 'Identify supported testing frameworks (Playwright, Cypress, Selenium).', status: 'pending' },
+    { stepNumber: 4, title: 'Prepare Test Environment', description: 'Verify setup requirements and locate test configuration files.', status: 'pending' },
+    { stepNumber: 5, title: 'Ready to Create Test Flow', description: 'Summarize analysis and prepare dynamic self-healing hooks.', status: 'pending' },
   ]);
 
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -92,14 +160,6 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
   // Context menu for a project
   const [menuOpenProjectId, setMenuOpenProjectId] = useState<string | null>(null);
 
-  // Filtered repositories
-  const filteredRepos = SAMPLE_GITHUB_REPOSITORIES.filter(
-    (r) =>
-      r.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
-      r.fullName.toLowerCase().includes(repoSearch.toLowerCase()) ||
-      r.language.toLowerCase().includes(repoSearch.toLowerCase())
-  );
-
   // Filtered projects
   const filteredProjects = projects.filter(
     (p) =>
@@ -108,19 +168,13 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
       (p.repoFullName && p.repoFullName.toLowerCase().includes(projectSearch.toLowerCase()))
   );
 
-  // Trigger GitHub connection flow
-  const handleStartGitHubConnect = () => {
-    setIsGitConnected(true);
-    setActiveStage('github_select');
-  };
-
   // Confirm repository selection & start analysis
   const handleConfirmRepository = () => {
-    const chosenRepo = SAMPLE_GITHUB_REPOSITORIES.find((r) => r.id === selectedRepoId);
+    const chosenRepo = filteredRepos.find((r) => r.id === selectedRepoId);
     if (!chosenRepo) return;
 
     setCurrentProject({
-      name: chosenRepo.name === 'shopflow-web' ? 'ShopFlow Web' : chosenRepo.name,
+      name: chosenRepo.name,
       source: gitProvider,
       repoName: chosenRepo.fullName,
       language: chosenRepo.language,
@@ -128,7 +182,7 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
         ? 'Playwright'
         : chosenRepo.detectedFrameworkHint.includes('Cypress')
         ? 'Cypress'
-        : 'Playwright',
+        : 'Scan pending',
     });
 
     startAnalysisSequence(chosenRepo.name);
@@ -558,11 +612,11 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
                   </span>
                   <span className="font-code-sm text-xs px-2 py-0.5 rounded-full bg-status-success-subtle text-status-success font-medium flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span>
-                    Connected as @elena-rostova
+                    Connected as @{githubUsername}
                   </span>
                 </div>
                 <span className="text-xs text-text-secondary">
-                  Organization: <strong className="text-text-primary">Acme Corp</strong> • Showing repositories with write access
+                  Showing repositories with access • {githubRepos.length} repos found
                 </span>
               </div>
             </div>
@@ -589,6 +643,25 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
               className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-subtle border border-border-subtle focus:border-primary focus:bg-surface-canvas focus:outline-none text-sm text-text-primary transition-all font-body-md"
             />
           </div>
+
+          {/* Loading / Error States */}
+          {reposLoading && (
+            <div className="p-8 text-center text-text-secondary">
+              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3"></div>
+              <p className="text-sm font-medium">Fetching your repositories from GitHub...</p>
+            </div>
+          )}
+
+          {reposError && (
+            <div className="p-4 rounded-xl bg-status-failure-subtle border border-status-failure/30 flex items-start gap-3">
+              <span className="material-symbols-outlined text-status-failure text-[20px]">error</span>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-bold text-status-failure">Failed to load repositories</span>
+                <span className="text-xs text-text-secondary">{reposError}</span>
+                <button type="button" onClick={() => { const stored = getStoredGitHubAuth(); if (stored) loadGitHubRepos(stored.token); }} className="mt-1 text-xs font-semibold text-primary underline text-left cursor-pointer">Retry</button>
+              </div>
+            </div>
+          )}
 
           {/* Repository List */}
           <div className="border border-border-subtle rounded-xl overflow-hidden divide-y divide-border-subtle max-h-80 overflow-y-auto">
@@ -1277,7 +1350,7 @@ export default defineConfig({
         </div>
 
         <div className="flex items-center justify-between text-xs text-text-muted pt-1">
-          <span>* Showing prototype repository connectivity data</span>
+          <span>* Connected to GitHub via OAuth {githubUsername ? `(@${githubUsername})` : ''}</span>
           <button
             type="button"
             onClick={() => setProjectSearch('')}
