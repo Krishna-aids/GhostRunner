@@ -93,12 +93,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Right CTA zone */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Dark / Light Theme Toggle */}
-          <ThemeToggle variant="icon" />
+          <ThemeToggle variant="icon" className="h-9 w-9" />
 
           <button
             type="button"
             onClick={() => (onNavigateToAuth ? onNavigateToAuth('signin') : onLaunchConsole('test-runs'))}
-            className="px-3.5 py-1.5 text-sm font-medium text-text-primary hover:text-primary transition-colors cursor-pointer"
+            className="h-9 px-3.5 inline-flex items-center justify-center text-sm font-medium text-text-primary hover:text-primary hover:bg-surface-subtle rounded-lg transition-colors cursor-pointer"
           >
             Sign In
           </button>
@@ -106,9 +106,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             type="button"
             onClick={() => (onNavigateToAuth ? onNavigateToAuth('signup') : onLaunchConsole('projects'))}
-            className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary-container text-on-primary hover:opacity-95 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            className="h-9 px-4 inline-flex items-center justify-center gap-1.5 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
-            Start Free Trial
+            <span className="material-symbols-outlined text-[16px]">bolt</span>
+            <span>Start Free Trial</span>
           </button>
         </div>
       </header>
@@ -149,7 +150,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             type="button"
             onClick={() => (onNavigateToAuth ? onNavigateToAuth('signup') : onLaunchConsole('projects'))}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-on-primary font-semibold text-sm shadow-md hover:bg-primary transition-all cursor-pointer"
+            className="h-12 inline-flex items-center justify-center gap-2 px-6 rounded-xl bg-primary text-white font-semibold text-sm shadow-md hover:bg-primary/90 transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">bolt</span>
             <span>Start Free Trial (14 days free)</span>
@@ -158,21 +159,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             type="button"
             onClick={onRunDemoSuite}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-surface-canvas text-text-primary border border-border-strong font-semibold text-sm hover:bg-surface-subtle transition-all cursor-pointer shadow-xs"
+            className="h-12 inline-flex items-center justify-center gap-2 px-5 rounded-xl bg-surface-canvas text-text-primary border border-border-strong font-semibold text-sm hover:bg-surface-subtle transition-all cursor-pointer shadow-xs"
           >
             <span className="material-symbols-outlined text-[20px] text-primary">play_circle</span>
             <span>Book Interactive Demo</span>
           </button>
 
-          {/* Copyable NPM command pill */}
-          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border-subtle font-mono text-xs text-text-secondary">
-            <span className="text-text-muted">$</span>
-            <span className="text-text-primary font-medium">npm install @ghostrunner/agent</span>
+          {/* Copyable NPM command snippet - styled distinctly as a code block utility */}
+          <div className="h-12 flex items-center gap-2 px-4 rounded-xl bg-surface-subtle/80 border border-dashed border-border-strong font-mono text-xs text-text-secondary select-all shadow-2xs">
+            <span className="text-primary font-bold select-none">$</span>
+            <span className="text-text-primary font-medium tracking-tight">npm install @ghostrunner/agent</span>
             <button
               type="button"
               onClick={handleCopyInstall}
               title="Copy to clipboard"
-              className="p-1 hover:text-text-primary transition-colors cursor-pointer"
+              aria-label="Copy to clipboard"
+              className="ml-1 p-1.5 rounded-md hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px]">
                 {copiedInstall ? 'check' : 'content_copy'}
@@ -183,8 +185,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Social Proof Logostrip */}
         <div className="mt-16 flex flex-col items-center gap-4 w-full">
-          <span className="font-label-sm text-[11px] uppercase tracking-widest text-text-muted font-semibold">
-            TRUSTED BY 10,000+ QA ENGINEERS & DEVOPS TEAMS ACROSS HIGH-VELOCITY TEAMS
+          <span className="font-label-sm text-xs text-text-muted font-semibold tracking-normal">
+            Trusted by 10,000+ QA engineers & DevOps professionals at high-velocity teams
           </span>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14 opacity-70 grayscale hover:grayscale-0 transition-all text-text-primary font-bold text-sm tracking-tight">
             <span className="flex items-center gap-1.5 hover:text-primary transition-colors">
@@ -222,19 +224,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-status-success animate-ping"></span>
-              <span className="font-label-sm text-[11px] uppercase tracking-wider font-bold text-status-success">
+              <span className="font-label-sm text-xs uppercase tracking-wider font-bold text-status-success">
                 LIVE TELEMETRY INSPECTOR
               </span>
             </div>
-            <div className="flex items-center gap-3 flex-wrap text-xs font-code-sm">
-              <span className="px-2.5 py-1 rounded-full bg-status-healed-subtle text-status-healed border border-status-healed/30 font-semibold flex items-center gap-1">
+            <div className="flex items-center gap-3 flex-wrap text-xs">
+              <span className="px-2.5 py-1 rounded-full bg-status-healed-subtle text-status-healed border border-status-healed/30 font-semibold flex items-center gap-1 text-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-status-healed"></span>
                 99.4% Healing Rate
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-surface-muted text-text-secondary border border-border-subtle">
+              <span className="px-2.5 py-1 rounded-full bg-surface-muted text-text-secondary border border-border-subtle text-xs font-medium">
                 3m 36s avg run duration
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-status-success-subtle text-status-success border border-status-success/30 font-medium">
+              <span className="px-2.5 py-1 rounded-full bg-status-success-subtle text-status-success border border-status-success/30 font-medium text-xs">
                 0 Flaky Alerts staged
               </span>
             </div>
@@ -268,6 +270,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
+            {/* Guided Process Stepper Bar to clarify the 3-step healing story */}
+            <div className="bg-surface-subtle/80 px-4 py-2.5 border-b border-border-subtle flex items-center justify-between text-xs font-medium text-text-secondary overflow-x-auto">
+              <div className="flex items-center gap-2 sm:gap-6 min-w-max">
+                <span className="flex items-center gap-1.5 text-text-primary font-semibold">
+                  <span className="w-5 h-5 rounded-full bg-status-failure/15 text-status-failure text-[11px] font-bold flex items-center justify-center">1</span>
+                  <span>Intercept DOM Mutation</span>
+                </span>
+                <span className="text-border-strong select-none">→</span>
+                <span className="flex items-center gap-1.5 text-text-primary font-semibold">
+                  <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[11px] font-bold flex items-center justify-center">2</span>
+                  <span>Neural Graph Resolver</span>
+                </span>
+                <span className="text-border-strong select-none">→</span>
+                <span className="flex items-center gap-1.5 text-text-primary font-semibold">
+                  <span className="w-5 h-5 rounded-full bg-status-healed/15 text-status-healed text-[11px] font-bold flex items-center justify-center">3</span>
+                  <span>Auto-Stage Verified PR</span>
+                </span>
+              </div>
+              <span className="hidden sm:inline-block text-[11px] text-text-muted font-mono">Real-Time Event Stream</span>
+            </div>
+
             {/* 3-Column Execution Stage Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border-subtle bg-surface-canvas">
               {/* Column 1: Playwright Test Step */}
@@ -288,17 +311,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div className="text-status-failure font-bold bg-status-failure-subtle/50 px-1 py-0.5 rounded mt-1">
                       await page.click('button#checkout-submit');
                     </div>
-                    <div className="text-[10px] text-status-failure mt-1.5">
+                    <div className="text-xs text-status-failure mt-1.5 font-medium">
                       ElementHandle Error: Timeout 5000ms exceeded locating button#checkout-submit
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs text-text-secondary bg-surface-subtle p-2 rounded-lg border border-border-subtle">
-                  <span className="material-symbols-outlined text-[16px] text-status-warning">
+                {/* Column 1 Standardized Footer Box */}
+                <div className="h-[52px] flex items-center gap-2 text-xs text-text-secondary bg-surface-subtle/60 p-2.5 rounded-xl border border-border-subtle">
+                  <span className="material-symbols-outlined text-[18px] text-status-warning shrink-0">
                     auto_fix_normal
                   </span>
-                  <span>Root cause: Frontend refactor renamed button ID to randomized hash</span>
+                  <span className="truncate">Root cause: Button ID replaced by randomized hash</span>
                 </div>
               </div>
 
@@ -310,7 +334,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <span className="material-symbols-outlined text-[14px] text-primary">psychology</span>
                       2. NEURAL RESOLVER
                     </span>
-                    <span className="font-code-sm text-[11px] text-text-muted">Latency: 32ms</span>
+                    <span className="font-code-sm text-xs text-text-muted">Latency: 32ms</span>
                   </div>
 
                   {/* Confidence Bars */}
@@ -333,19 +357,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </div>
 
                   <div className="bg-status-healed-subtle/60 p-2.5 rounded-lg border border-status-healed/30 text-xs">
-                    <span className="text-text-muted text-[11px] block">Synthesized candidate:</span>
+                    <span className="text-text-secondary text-xs block font-medium">Synthesized candidate:</span>
                     <code className="font-mono text-status-healed font-bold">
                       button[data-testid='place-order-cta']
                     </code>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-text-muted border-t pt-2 border-border-subtle">
-                  <span className="flex items-center gap-1 text-status-healed font-medium">
+                {/* Column 2 Standardized Footer Box */}
+                <div className="h-[52px] flex items-center justify-between text-xs text-text-secondary bg-surface-subtle/60 p-2.5 rounded-xl border border-border-subtle px-3">
+                  <span className="flex items-center gap-1.5 text-status-healed font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-status-healed"></span>
                     Heuristic Consensus
                   </span>
-                  <span>Threshold: &gt;0.85</span>
+                  <span className="text-text-muted text-xs">Threshold: &gt;0.85</span>
                 </div>
               </div>
 
@@ -369,23 +394,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div className="text-status-healed font-bold bg-status-healed-subtle/60 px-1 rounded">
                       + await page.click('button[data-testid="pla...');
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-text-muted pt-2 border-t border-border-subtle mt-2">
+                    <div className="flex items-center justify-between text-xs text-text-secondary pt-2 border-t border-border-subtle mt-2">
                       <span>Execution Time: +32ms</span>
                       <span className="text-status-success font-semibold">Zero test interruption</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Staged PR banner with button */}
-                <div className="bg-surface-container/60 p-2.5 rounded-xl border border-border-subtle flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="material-symbols-outlined text-[18px] text-primary">merge</span>
+                {/* Column 3 Standardized Footer Box with Prominent Filled Review PR Button and Breathing Room */}
+                <div className="h-[52px] bg-surface-subtle/60 p-2.5 rounded-xl border border-border-subtle flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0 mr-1">
+                    <span className="material-symbols-outlined text-[18px] text-primary shrink-0">merge</span>
                     <div className="flex flex-col min-w-0">
                       <span className="font-label-md text-xs font-bold text-text-primary truncate">
                         PR #1042 ready to merge
                       </span>
-                      <span className="text-[11px] text-text-muted truncate">
-                        ghostrunner[bot] pushed 1 locator commit
+                      <span className="text-xs text-text-secondary truncate" title="ghostrunner[bot] pushed 1 locator commit">
+                        ghostrunner[bot] · 1 commit
                       </span>
                     </div>
                   </div>
@@ -393,9 +418,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <button
                     type="button"
                     onClick={() => onLaunchConsole('healing-queue')}
-                    className="px-2.5 py-1 rounded-lg bg-surface-canvas border border-border-strong text-xs font-semibold text-text-primary hover:bg-primary-container hover:text-white transition-colors cursor-pointer shrink-0 shadow-xs"
+                    className="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1"
                   >
-                    Review PR
+                    <span>Review PR</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                   </button>
                 </div>
               </div>
@@ -419,10 +445,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </p>
         </div>
 
-        {/* Bento Grid */}
+        {/* Feature Grid: Standardized 3-column layout with equal height cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card 1: Large left spanning 2 columns on lg */}
-          <div className="lg:col-span-2 bg-surface-canvas rounded-2xl p-6 sm:p-8 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all">
+          {/* Card 1: Autonomous Self-Healing Locators */}
+          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all h-full">
             <div className="flex flex-col gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary-container/10 text-primary flex items-center justify-center">
                 <span className="material-symbols-outlined text-[22px]">visibility</span>
@@ -430,30 +456,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span className="font-code-sm text-xs font-semibold text-primary">
                 Vision + DOM Semantic Graph
               </span>
-              <h3 className="font-headline-md text-xl sm:text-2xl font-bold text-text-primary">
+              <h3 className="font-headline-md text-lg font-bold text-text-primary">
                 Autonomous Self-Healing Locators
               </h3>
-              <p className="font-body-md text-text-secondary leading-relaxed">
+              <p className="font-body-md text-text-secondary text-sm leading-relaxed">
                 When CSS classnames change, IDs mutate, or components get wrapped in shadow roots,
-                GhostRunner's neural agent parses the accessibility tree, surrounding text, and visual
-                bounding box to pinpoint the target in milliseconds.
+                GhostRunner parses the accessibility tree and visual bounding box to pinpoint the target in milliseconds.
               </p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-code-sm">
-              <span className="flex items-center gap-1.5 text-text-primary font-medium">
-                <span className="material-symbols-outlined text-[16px] text-primary">hub</span>
-                Dynamic Spatial & A11y Matching
-                <span className="text-text-muted font-normal">(No hardcoded XPath)</span>
+            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col gap-3">
+              <span className="text-xs text-status-healed font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-healed"></span>
+                99.8% Recovery Precision
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-status-healed-subtle text-status-healed font-semibold w-max border border-status-healed/30">
-                • 99.8% Recovery Precision
-              </span>
+              <button
+                type="button"
+                onClick={() => onLaunchConsole('healing-queue')}
+                className="text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer text-left"
+              >
+                <span>Explore Locator Healing</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
             </div>
           </div>
 
           {/* Card 2: Drop-In SDK */}
-          <div className="bg-surface-canvas rounded-2xl p-6 sm:p-8 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all">
+          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all h-full">
             <div className="flex flex-col gap-3">
               <div className="w-10 h-10 rounded-xl bg-status-healed-subtle text-status-healed flex items-center justify-center">
                 <span className="material-symbols-outlined text-[22px]">terminal</span>
@@ -461,87 +490,162 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span className="font-code-sm text-xs font-semibold text-status-healed">
                 Zero Migration Friction
               </span>
-              <h3 className="font-headline-md text-xl font-bold text-text-primary">
+              <h3 className="font-headline-md text-lg font-bold text-text-primary">
                 Drop-In SDK for Playwright & Cypress
               </h3>
-              <p className="font-body-md text-text-secondary text-sm">
+              <p className="font-body-md text-text-secondary text-sm leading-relaxed">
                 Keep your existing TypeScript or Python test suites. GhostRunner wraps your browser
-                harness via a simple 3-line wrapper.
+                harness via a simple 3-line wrapper without changing assertion syntax.
               </p>
             </div>
 
-            <div className="mt-6 bg-surface-subtle p-3 rounded-xl border border-border-subtle font-mono text-[11px] text-text-primary">
-              <div className="text-text-muted">// In playwright.config.ts</div>
-              <div className="text-primary font-semibold">
-                import {'{ withGhostRunner }'} from '@ghostrunner';
+            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col gap-3">
+              <div className="bg-surface-subtle p-2.5 rounded-xl border border-border-subtle font-mono text-[11px] text-text-primary">
+                <span className="text-primary font-semibold">import {'{ withGhostRunner }'}</span>
               </div>
+              <button
+                type="button"
+                onClick={() => onLaunchConsole('test-runs')}
+                className="text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer text-left"
+              >
+                <span>View SDK Integration Guide</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
             </div>
           </div>
 
           {/* Card 3: Visual Flow Studio */}
-          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all">
+          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all h-full">
             <div className="flex flex-col gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary-container/10 text-primary flex items-center justify-center">
                 <span className="material-symbols-outlined text-[22px]">videocam</span>
               </div>
+              <span className="font-code-sm text-xs font-semibold text-primary">
+                Time-Travel Debugging
+              </span>
               <h3 className="font-headline-md text-lg font-bold text-text-primary">
                 Visual Flow Studio & HAR Traces
               </h3>
-              <p className="font-body-md text-text-secondary text-sm">
+              <p className="font-body-md text-text-secondary text-sm leading-relaxed">
                 Step backwards and forwards through real video replays, network waterfalls, DOM
                 mutations, and agent reasoning logs for every executed action.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => onLaunchConsole('test-runs')}
-              className="mt-6 text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer"
-            >
-              <span>Explore Visual Timeline</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </button>
+            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col gap-3">
+              <span className="text-xs text-text-secondary flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px] text-primary">history</span>
+                Step-by-step trace inspection
+              </span>
+              <button
+                type="button"
+                onClick={() => onLaunchConsole('test-runs')}
+                className="text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer text-left"
+              >
+                <span>Explore Visual Timeline</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
           </div>
 
           {/* Card 4: Automatic GitHub PRs */}
-          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all">
+          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all h-full">
             <div className="flex flex-col gap-3">
               <div className="w-10 h-10 rounded-xl bg-status-healed-subtle text-status-healed flex items-center justify-center">
                 <span className="material-symbols-outlined text-[22px]">auto_mode</span>
               </div>
+              <span className="font-code-sm text-xs font-semibold text-status-healed">
+                Git-Native Workflow
+              </span>
               <h3 className="font-headline-md text-lg font-bold text-text-primary">
                 Automatic GitHub & GitLab PRs
               </h3>
-              <p className="font-body-md text-text-secondary text-sm">
+              <p className="font-body-md text-text-secondary text-sm leading-relaxed">
                 GhostRunner doesn't just hotfix tests during runtime. It bundles confirmed locator
                 changes into cleanly structured git commits ready for 1-click team review.
               </p>
             </div>
 
-            <div className="mt-6 flex items-center gap-1.5 text-xs text-status-healed font-medium">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
-              <span>Auto-stages verified branch PR</span>
+            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col gap-3">
+              <div className="flex items-center gap-1.5 text-xs text-status-healed font-medium">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                <span>Auto-stages verified branch PR</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onLaunchConsole('healing-queue')}
+                className="text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer text-left"
+              >
+                <span>Learn About Git Workflows</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
             </div>
           </div>
 
           {/* Card 5: Parallel Cloud Execution Matrix */}
-          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all">
+          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all h-full">
             <div className="flex flex-col gap-3">
               <div className="w-10 h-10 rounded-xl bg-surface-muted text-text-primary flex items-center justify-center">
                 <span className="material-symbols-outlined text-[22px]">lan</span>
               </div>
+              <span className="font-code-sm text-xs font-semibold text-text-secondary">
+                Distributed Infrastructure
+              </span>
               <h3 className="font-headline-md text-lg font-bold text-text-primary">
                 Parallel Cloud Execution Matrix
               </h3>
-              <p className="font-body-md text-text-secondary text-sm">
+              <p className="font-body-md text-text-secondary text-sm leading-relaxed">
                 Spin up 100+ isolated headless Chromium, Firefox, and WebKit runners across global
                 zones with instant test sharding and automatic timeout intercepts.
               </p>
             </div>
 
-            <div className="mt-6 flex items-center justify-between text-xs font-code-sm text-text-muted">
-              <span>Multi-Region Cloud</span>
-              <span className="font-bold text-status-success">99.99% SLA</span>
+            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col gap-3">
+              <div className="flex items-center justify-between text-xs text-text-secondary">
+                <span>Multi-Region Cloud</span>
+                <span className="font-bold text-status-success">99.99% SLA</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onLaunchConsole('dashboard')}
+                className="text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer text-left"
+              >
+                <span>View Cloud Infrastructure</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card 6: Flakiness Scoring & Quarantine */}
+          <div className="bg-surface-canvas rounded-2xl p-6 border border-border-subtle shadow-sm flex flex-col justify-between hover:border-border-strong transition-all h-full">
+            <div className="flex flex-col gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-container/10 text-primary flex items-center justify-center">
+                <span className="material-symbols-outlined text-[22px]">query_stats</span>
+              </div>
+              <span className="font-code-sm text-xs font-semibold text-primary">
+                Predictive Quality
+              </span>
+              <h3 className="font-headline-md text-lg font-bold text-text-primary">
+                Flakiness Scoring & Quarantine
+              </h3>
+              <p className="font-body-md text-text-secondary text-sm leading-relaxed">
+                Continuously monitor suite reliability metrics, quarantine intermittent assertions before they block pipelines, and prioritize selector refactors.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-border-subtle flex flex-col gap-3">
+              <div className="flex items-center justify-between text-xs text-text-secondary">
+                <span>Predictive Reliability</span>
+                <span className="font-bold text-status-healed">Zero False Positives</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onLaunchConsole('dashboard')}
+                className="text-primary font-semibold text-xs flex items-center gap-1 hover:underline cursor-pointer text-left"
+              >
+                <span>Explore Test Health Telemetry</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
             </div>
           </div>
         </div>
@@ -564,88 +668,91 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Comparison Table */}
         <div className="bg-surface-canvas rounded-2xl border border-border-subtle shadow-sm overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+          <table className="w-full text-left border-collapse min-w-[840px]">
             <thead>
-              <tr className="border-b border-border-subtle text-xs font-code-sm uppercase tracking-wider text-text-muted bg-surface-subtle">
-                <th className="p-4 sm:p-5 font-semibold w-1/4">EVALUATION VECTOR</th>
-                <th className="p-4 sm:p-5 font-bold text-primary bg-primary-container/5 border-x border-primary/20 w-1/4">
+              <tr className="border-b border-border-subtle text-xs font-code-sm uppercase tracking-wider text-text-secondary bg-surface-subtle">
+                <th className="p-4 sm:px-5 sm:py-4 font-semibold w-[28%]">EVALUATION VECTOR</th>
+                <th className="p-4 sm:px-5 sm:py-4 font-bold text-primary bg-primary-container/5 border-x border-primary/20 w-[28%]">
                   GHOSTRUNNER AI
                 </th>
-                <th className="p-4 sm:p-5 font-semibold w-1/4">STANDARD PLAYWRIGHT / SELENIUM</th>
-                <th className="p-4 sm:p-5 font-semibold w-1/4">LEGACY RPA / KATALON</th>
+                <th className="p-4 sm:px-5 sm:py-4 font-semibold text-text-secondary w-[22%]">STANDARD PLAYWRIGHT / SELENIUM</th>
+                <th className="p-4 sm:px-5 sm:py-4 font-semibold text-text-secondary w-[22%]">LEGACY RPA / KATALON</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle text-sm">
               <tr>
-                <td className="p-4 sm:p-5 font-medium text-text-primary">
+                <td className="p-4 sm:px-5 sm:py-4 font-medium text-text-primary">
                   Dynamic UI & Locator Adaptation
                 </td>
-                <td className="p-4 sm:p-5 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-healed flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">verified</span>
-                  Autonomous AI Vision + ARIA semantic resolution
+                <td className="p-4 sm:px-5 sm:py-4 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-healed flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] shrink-0 text-status-healed">verified</span>
+                  <span>Autonomous AI Vision + ARIA semantic resolution</span>
                 </td>
-                <td className="p-4 sm:p-5 text-status-failure">
+                <td className="p-4 sm:px-5 sm:py-4 text-status-failure">
                   ✕ Fails immediately on selector mutations
                 </td>
-                <td className="p-4 sm:p-5 text-status-warning">
+                <td className="p-4 sm:px-5 sm:py-4 text-status-warning">
                   ▲ Rule-based fallback, high false positive rate
                 </td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-medium text-text-primary">
+                <td className="p-4 sm:px-5 sm:py-4 font-medium text-text-primary">
                   Setup & Developer Integration
                 </td>
-                <td className="p-4 sm:p-5 bg-primary-container/5 border-x border-primary/20 font-semibold text-primary">
-                  &lt;2 minutes (3 lines wrapper config)
+                <td className="p-4 sm:px-5 sm:py-4 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-healed flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] shrink-0 text-status-healed">timer</span>
+                  <span>&lt;2 minutes (3 lines wrapper config)</span>
                 </td>
-                <td className="p-4 sm:p-5 text-text-secondary">
-                  Native code (Requires manual scaffold)
+                <td className="p-4 sm:px-5 sm:py-4 text-text-secondary">
+                  ▲ Native code (Requires manual scaffold)
                 </td>
-                <td className="p-4 sm:p-5 text-text-secondary">
-                  Heavy standalone desktop client install
+                <td className="p-4 sm:px-5 sm:py-4 text-status-failure">
+                  ✕ Heavy standalone desktop client install
                 </td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-medium text-text-primary">
+                <td className="p-4 sm:px-5 sm:py-4 font-medium text-text-primary">
                   Test Flakiness & False Alarms
                 </td>
-                <td className="p-4 sm:p-5 bg-primary-container/5 border-x border-primary/20 font-bold text-status-healed">
-                  0% locator flakiness
+                <td className="p-4 sm:px-5 sm:py-4 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-healed flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] shrink-0 text-status-healed">verified_user</span>
+                  <span>0% locator flakiness</span>
                 </td>
-                <td className="p-4 sm:p-5 text-status-failure">
-                  30-40% weekly pipeline breakage
+                <td className="p-4 sm:px-5 sm:py-4 text-status-failure">
+                  ✕ 30-40% weekly pipeline breakage
                 </td>
-                <td className="p-4 sm:p-5 text-text-secondary">
-                  15-20% flakiness from heavy sync loops
+                <td className="p-4 sm:px-5 sm:py-4 text-status-warning">
+                  ▲ 15-20% flakiness from heavy sync loops
                 </td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-medium text-text-primary">
+                <td className="p-4 sm:px-5 sm:py-4 font-medium text-text-primary">
                   Maintenance & Engineering Overhead
                 </td>
-                <td className="p-4 sm:p-5 bg-primary-container/5 border-x border-primary/20 font-semibold text-primary flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px]">merge</span>
-                  Automated GitHub PR staging
+                <td className="p-4 sm:px-5 sm:py-4 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-healed flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] shrink-0 text-status-healed">merge</span>
+                  <span>Automated GitHub PR staging</span>
                 </td>
-                <td className="p-4 sm:p-5 text-text-secondary">
-                  Hours spent daily triaging red CI builds
+                <td className="p-4 sm:px-5 sm:py-4 text-status-failure">
+                  ✕ Hours spent daily triaging red CI builds
                 </td>
-                <td className="p-4 sm:p-5 text-text-secondary">
-                  Proprietary repository updates required
+                <td className="p-4 sm:px-5 sm:py-4 text-text-secondary">
+                  ▲ Proprietary repository updates required
                 </td>
               </tr>
               <tr>
-                <td className="p-4 sm:p-5 font-medium text-text-primary">
+                <td className="p-4 sm:px-5 sm:py-4 font-medium text-text-primary">
                   Vendor Lock-In
                 </td>
-                <td className="p-4 sm:p-5 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-success">
-                  Zero (Native code runs without agent if needed)
+                <td className="p-4 sm:px-5 sm:py-4 bg-primary-container/5 border-x border-primary/20 font-semibold text-status-healed flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] shrink-0 text-status-healed">lock_open</span>
+                  <span>Zero (Native code runs without agent if needed)</span>
                 </td>
-                <td className="p-4 sm:p-5 text-status-success">
-                  Zero (Pure open-source code)
+                <td className="p-4 sm:px-5 sm:py-4 text-status-success font-medium">
+                  ✓ Zero (Pure open-source code)
                 </td>
-                <td className="p-4 sm:p-5 text-status-failure font-medium">
-                  High (Locked into proprietary test suites)
+                <td className="p-4 sm:px-5 sm:py-4 text-status-failure font-medium">
+                  ✕ High (Locked into proprietary test suites)
                 </td>
               </tr>
             </tbody>
@@ -715,40 +822,61 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Right Code Window */}
-          <div className="lg:col-span-7 bg-[#0b1329] text-slate-100 rounded-2xl shadow-xl border border-slate-800 overflow-hidden font-mono text-xs flex flex-col">
-            {/* Window bar */}
-            <div className="bg-[#101b38] px-4 py-2 border-b border-slate-800 flex items-center justify-between text-slate-400">
-              <div className="flex items-center gap-2">
+          <div className="lg:col-span-7 bg-[#0b1329] text-white rounded-2xl shadow-xl border border-slate-800 overflow-hidden font-mono text-xs flex flex-col">
+            {/* Window bar with balanced padding and unified segmented toggle bar */}
+            <div className="bg-[#101b38] px-4 py-3 border-b border-slate-800 flex items-center justify-between text-text-secondary">
+              <div
+                className="inline-flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 gap-1"
+                role="tablist"
+                aria-label="Code snippet language selection"
+              >
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={codeTab === 'ts'}
                   onClick={() => setCodeTab('ts')}
-                  className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                    codeTab === 'ts' ? 'bg-[#1b2b52] text-white font-semibold' : 'hover:text-white'
+                  className={`h-8 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer inline-flex items-center justify-center ${
+                    codeTab === 'ts'
+                      ? 'bg-[#1b2b52] text-white font-semibold shadow-xs'
+                      : 'text-text-secondary hover:text-white'
                   }`}
                 >
                   TypeScript
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={codeTab === 'python'}
                   onClick={() => setCodeTab('python')}
-                  className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                    codeTab === 'python' ? 'bg-[#1b2b52] text-white font-semibold' : 'hover:text-white'
+                  className={`h-8 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer inline-flex items-center justify-center ${
+                    codeTab === 'python'
+                      ? 'bg-[#1b2b52] text-white font-semibold shadow-xs'
+                      : 'text-text-secondary hover:text-white'
                   }`}
                 >
                   Python
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={codeTab === 'github'}
                   onClick={() => setCodeTab('github')}
-                  className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                    codeTab === 'github' ? 'bg-[#1b2b52] text-white font-semibold' : 'hover:text-white'
+                  className={`h-8 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer inline-flex items-center justify-center ${
+                    codeTab === 'github'
+                      ? 'bg-[#1b2b52] text-white font-semibold shadow-xs'
+                      : 'text-text-secondary hover:text-white'
                   }`}
                 >
                   GitHub Actions CI
                 </button>
               </div>
 
-              <span className="text-[11px] text-slate-400">playwright.config.ts</span>
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/20 text-primary text-[11px] font-semibold">
+                  3-Line Wrapper
+                </span>
+                <span className="text-xs text-text-secondary font-mono">playwright.config.ts</span>
+              </div>
             </div>
 
             {/* Code Body */}
@@ -756,11 +884,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {codeTab === 'ts' && (
                 <pre>
                   <code>
-{`// 1. Import GhostRunner wrapper
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/25 mb-2 text-white">
+                      <span className="text-primary font-bold">// ✦ The 3 lines that add autonomous self-healing:</span>{'\n'}
+                      <span className="text-primary font-semibold">import {'{ withGhostRunner }'} from '@ghostrunner/playwright';</span>{'\n'}
+                      <span className="text-white">export default <span className="text-primary font-bold">withGhostRunner</span>(defineConfig({'{'} ... {'}'}));</span>
+                    </div>
+{`// Full standard Playwright configuration below:
 import { defineConfig } from '@playwright/test';
-import { withGhostRunner } from '@ghostrunner/playwright';
 
-// 2. Wrap your standard Playwright configuration
 export default withGhostRunner(defineConfig({
   testDir: './tests',
   timeout: 30000,
@@ -778,9 +909,9 @@ export default withGhostRunner(defineConfig({
   }
 }));
 
-// [GHOSTRUNNER RUNTIME] Intercepted selector mutation on page.click()
+// [RUNTIME LOG] Intercepted selector mutation on page.click()
 // >> Healed: button#checkout-btn -> button[data-testid="submit-order"] (conf: 0.98)
-// >> Staged commit: "chore(test): heal checkout button selector in e2e/checkout.spec.ts"`}
+// >> Staged verified commit to GitHub PR #1042`}
                   </code>
                 </pre>
               )}
@@ -849,7 +980,7 @@ jobs:
               10M+
             </span>
             <span className="font-headline-sm text-sm font-bold text-text-primary mt-2">
-              Test Runs Autonomous Healed
+              Autonomously Healed Test Runs
             </span>
             <span className="text-xs text-text-secondary mt-1">
               Across production deployments in multi-cloud CI pipelines.
@@ -874,8 +1005,8 @@ jobs:
           {/* Testimonial 1 */}
           <div className="p-6 sm:p-8 rounded-2xl bg-surface-canvas border border-border-subtle shadow-sm flex flex-col justify-between gap-4">
             <div className="flex flex-col gap-3">
-              <div className="flex items-center text-status-warning text-sm">
-                ★★★★★
+              <div className="flex items-center text-status-warning text-sm" role="img" aria-label="5 out of 5 stars">
+                <span aria-hidden="true">★★★★★</span>
               </div>
               <p className="font-body-md text-text-secondary italic leading-relaxed">
                 "Our on-call engineering team used to wake up at 2 AM simply because a Tailwind refactor
@@ -898,8 +1029,8 @@ jobs:
           {/* Testimonial 2 */}
           <div className="p-6 sm:p-8 rounded-2xl bg-surface-canvas border border-border-subtle shadow-sm flex flex-col justify-between gap-4">
             <div className="flex flex-col gap-3">
-              <div className="flex items-center text-status-warning text-sm">
-                ★★★★★
+              <div className="flex items-center text-status-warning text-sm" role="img" aria-label="5 out of 5 stars">
+                <span aria-hidden="true">★★★★★</span>
               </div>
               <p className="font-body-md text-text-secondary italic leading-relaxed">
                 "We evaluated Katalon and Skyvern, but GhostRunner struck the exact right balance:
@@ -923,12 +1054,12 @@ jobs:
 
       {/* 8. Bottom CTA Banner Card */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
-        <div className="rounded-3xl bg-primary text-white p-8 sm:p-12 lg:p-16 flex flex-col items-center text-center shadow-xl relative overflow-hidden">
+        <div className="rounded-3xl bg-[#1d4ed8] text-white p-8 sm:p-12 lg:p-16 flex flex-col items-center text-center shadow-xl relative overflow-hidden">
           {/* Subtle background glow */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-700 via-primary to-blue-500 opacity-90"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-800 via-[#1d4ed8] to-blue-600 opacity-95"></div>
 
           <div className="relative z-10 flex flex-col items-center max-w-3xl gap-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white border border-white/20 text-xs font-semibold backdrop-blur-xs">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white border border-white/30 text-xs font-semibold backdrop-blur-xs">
               <span className="material-symbols-outlined text-[16px]">verified</span>
               <span>5-Minute Zero-Risk Implementation</span>
             </div>
@@ -937,7 +1068,7 @@ jobs:
               Ready to eradicate test flakiness for good?
             </h2>
 
-            <p className="text-white/80 text-sm sm:text-base max-w-2xl mt-1">
+            <p className="text-white text-sm sm:text-base max-w-2xl mt-1 opacity-95">
               Start testing autonomously in under 5 minutes. No credit card required. Connect your
               GitHub repository and watch your test suite heal itself on the next push.
             </p>
@@ -946,23 +1077,23 @@ jobs:
               <button
                 type="button"
                 onClick={() => (onNavigateToAuth ? onNavigateToAuth('signup') : onLaunchConsole('projects'))}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-primary font-bold text-sm shadow-lg hover:bg-slate-100 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#1d4ed8] font-bold text-sm shadow-lg hover:bg-slate-100 transition-all cursor-pointer"
               >
+                <span className="material-symbols-outlined text-[18px]">bolt</span>
                 <span>Start Free Trial (14 Days)</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </button>
 
               <button
                 type="button"
                 onClick={onRunDemoSuite}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-transparent border border-white/40 text-white font-semibold text-sm hover:bg-white/10 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/60 text-white font-semibold text-sm hover:bg-white/20 transition-all cursor-pointer"
               >
                 <span>Schedule Architecture Walkthrough</span>
               </button>
             </div>
 
             {/* Badges footer */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-white/75 font-medium">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-white/90 font-medium">
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[16px]">shield</span>
                 SOC2 Type II Certified
