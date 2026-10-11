@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TestDefinition, TestRun, RunStatus } from '../../types/domain';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, normalizeConfidenceForDisplay } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { RunStatusBadge } from '../shared/RunStatusBadge';
 import { FailureCategoryChip } from '../shared/FailureCategoryChip';
@@ -35,7 +35,6 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
   const [pollingTimeAgo, setPollingTimeAgo] = useState<string>('Just now');
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const stageTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadTestData = async () => {
     setLoading(true);
@@ -48,10 +47,11 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
       setTest(testData);
       setRuns(runsData);
 
-      // If most recent run was just triggered and not terminal, bind it
+      // If most recent run is still in-progress, re-bind and resume polling
       if (runsData.length > 0 && !TERMINAL_STATUSES.includes(runsData[0].status)) {
         setActiveRun(runsData[0]);
         setTimelineStatus(runsData[0].status);
+        startPolling(runsData[0].id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load test definition');
@@ -60,80 +60,65 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
     }
   };
 
+  /** Poll GET /runs/:id every 3s until a terminal status is reached. */
+  const startPolling = useCallback((runId: string) => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const updated = await apiFetch<TestRun>(`/runs/${runId}`, ownerId);
+        setActiveRun(updated);
+        setTimelineStatus(updated.status);
+        if (TERMINAL_STATUSES.includes(updated.status)) {
+          clearInterval(pollTimerRef.current!);
+          pollTimerRef.current = null;
+          setIsRunning(false);
+          // Refresh run history
+          apiFetch<TestRun[]>(`/tests/${testId}/runs`, ownerId).then(setRuns).catch(() => {});
+        }
+      } catch {
+        // tolerate transient errors during polling
+      }
+    }, 3000);
+  }, [testId, ownerId]);
+
   useEffect(() => {
     loadTestData();
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-      if (stageTimerRef.current) clearInterval(stageTimerRef.current);
     };
   }, [testId, ownerId]);
 
-  // Trigger Run Test
+  // Trigger Run Test — calls FastAPI backend (synchronous execution)
   const handleRunTest = async () => {
     setIsRunning(true);
-    setTimelineStatus('queued');
-    setPollingTimeAgo('Just now');
+    setTimelineStatus('running');
+    setPollingTimeAgo('Executing…');
 
     try {
-      const newRun = await apiFetch<TestRun>(`/tests/${testId}/runs`, ownerId, {
+      // Backend runs Playwright synchronously and returns the final RunResponse
+      const completedRun = await apiFetch<TestRun>(`/tests/${testId}/runs`, ownerId, {
         method: 'POST',
-        body: JSON.stringify({ environment_ref: 'demo-env', start_command: null }),
+        body: JSON.stringify({ environment_ref: 'production', start_command: null }),
       });
 
-      setActiveRun(newRun);
-      setRuns((prev) => [newRun, ...prev.filter((r) => r.id !== newRun.id)]);
+      setActiveRun(completedRun);
+      setRuns((prev) => [completedRun, ...prev.filter((r) => r.id !== completedRun.id)]);
 
-      // Check if this test is on version v2 (post-healing)
-      const currentVer = test?.current_version?.version_number || 1;
-      const isV2 = currentVer >= 2;
-
-      // Simulate the exact stages: QUEUED -> PREPARING -> RUNNING -> COLLECTING_EVIDENCE -> CLASSIFYING -> FAILED (or PASSED if v2)
-      const stages: RunStatus[] = [
-        'queued',
-        'preparing',
-        'running',
-        'collecting_evidence',
-        'classifying',
-        isV2 ? 'passed' : 'failed',
-      ];
-
-      let stepIndex = 0;
-      stageTimerRef.current = setInterval(() => {
-        stepIndex += 1;
-        if (stepIndex < stages.length) {
-          const nextStatus = stages[stepIndex];
-          setTimelineStatus(nextStatus);
-          setPollingTimeAgo(`${stepIndex * 2}s ago`);
-
-          if (TERMINAL_STATUSES.includes(nextStatus)) {
-            clearInterval(stageTimerRef.current!);
-            setIsRunning(false);
-
-            // Update active run object
-            setActiveRun((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    status: nextStatus,
-                    classification: nextStatus === 'failed' ? 'LOCATOR_DRIFT' : null,
-                    confidence: nextStatus === 'failed' ? 87 : 100,
-                    summary:
-                      nextStatus === 'failed'
-                        ? 'Button selector .checkout-btn not found. Element moved.'
-                        : 'Self-healed action plan validated: Test passed on v2 locators.',
-                  }
-                : null
-            );
-
-            // Refresh runs list
-            apiFetch<TestRun[]>(`/tests/${testId}/runs`, ownerId).then((refreshed) => {
-              setRuns(refreshed);
-            });
-          }
-        }
-      }, 1500);
+      if (TERMINAL_STATUSES.includes(completedRun.status)) {
+        // Run finished synchronously — show real terminal state
+        setTimelineStatus(completedRun.status);
+        setPollingTimeAgo('Just now');
+        setIsRunning(false);
+        // Refresh run history from source of truth
+        apiFetch<TestRun[]>(`/tests/${testId}/runs`, ownerId).then(setRuns).catch(() => {});
+      } else {
+        // Non-terminal: backend returned a queued/running state — start polling
+        setTimelineStatus(completedRun.status);
+        startPolling(completedRun.id);
+      }
     } catch (err) {
       setIsRunning(false);
+      setTimelineStatus('queued'); // reset stepper
       alert(err instanceof Error ? err.message : 'Failed to trigger test run');
     }
   };
@@ -209,7 +194,16 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
           <div className="flex items-center gap-3 text-[11px] font-mono text-text-muted pt-1">
             <span>Assertions: {test.required_assertions.length} active</span>
             <span>•</span>
-            <span>Environment: demo-env</span>
+            <span>Environment: production</span>
+            {test.current_version?.repository_revision && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">commit</span>
+                  {test.current_version.repository_revision.slice(0, 7)}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -264,7 +258,7 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
           <RunTimeline currentStatus={timelineStatus} lastUpdated={pollingTimeAgo} />
 
           {/* If failed in live run, show instant link to AI Repair */}
-          {timelineStatus === 'failed' && activeRun && (
+          {(timelineStatus === 'failed' || timelineStatus === 'repair_proposed') && activeRun && (
             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
               <div className="flex items-center gap-2.5">
                 <span className="material-symbols-outlined text-amber-600 text-[22px]">
@@ -272,10 +266,11 @@ export const TestDetailPage: React.FC<TestDetailPageProps> = ({
                 </span>
                 <div className="flex flex-col">
                   <span className="font-bold text-amber-900 dark:text-amber-200">
-                    Failure Detected: LOCATOR_DRIFT (87% confidence)
+                    Failure Detected{activeRun.classification ? `: ${activeRun.classification}` : ''}
+                    {activeRun.confidence != null ? ` (${normalizeConfidenceForDisplay(activeRun.confidence)}% confidence)` : ''}
                   </span>
                   <span className="text-amber-800 dark:text-amber-300">
-                    GhostRunner has formulated an AI repair proposal replacing brittle selectors with semantic roles.
+                    {activeRun.summary || 'GhostRunner has formulated an AI repair proposal replacing brittle selectors with semantic roles.'}
                   </span>
                 </div>
               </div>

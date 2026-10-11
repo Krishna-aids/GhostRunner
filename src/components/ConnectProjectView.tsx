@@ -38,16 +38,26 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
   const [reposError, setReposError] = useState<string>('');
   const [repoSearch, setRepoSearch] = useState('');
   const [selectedRepoId, setSelectedRepoId] = useState<string>('');
+  // GitHub App installation_id — captured from OAuth redirect URL
+  const [githubInstallationId, setGithubInstallationId] = useState<string>('');
 
   // Check for existing GitHub auth or OAuth callback on mount
   useEffect(() => {
-    // First check if we're returning from OAuth
+    // First check if we're returning from OAuth (installation redirect)
     const oauthResult = handleOAuthCallback();
     if (oauthResult) {
       setIsGitConnected(true);
       setGithubUsername(oauthResult.username);
       setActiveStage('github_select');
       loadGitHubRepos(oauthResult.token);
+
+      // Capture installation_id from redirect URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const installId = urlParams.get('installation_id');
+      if (installId) {
+        setGithubInstallationId(installId);
+        sessionStorage.setItem('github_installation_id', installId);
+      }
       return;
     }
 
@@ -56,6 +66,9 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
     if (stored) {
       setIsGitConnected(true);
       setGithubUsername(stored.username);
+      // Restore stored installation_id
+      const storedInstallId = sessionStorage.getItem('github_installation_id');
+      if (storedInstallId) setGithubInstallationId(storedInstallId);
     }
   }, []);
 
@@ -392,20 +405,31 @@ export const ConnectProjectView: React.FC<ConnectProjectViewProps> = ({
         })
       );
 
-      // Add to recent projects
+      // Add to recent projects (with real repo metadata including installation_id)
+      const chosenRepo = filteredRepos.find((r) => r.id === selectedRepoId);
       const newProjectItem: ProjectItem = {
         id: `proj-${Date.now()}`,
         name: projectName,
         source: uploadedFile ? 'zip' : 'github',
-        repoFullName: currentProject.repoName || `acme-corp/${projectName.toLowerCase()}`,
-        detectedFramework: 'Playwright',
-        language: 'TypeScript',
+        repoFullName: currentProject.repoName || chosenRepo?.fullName || `acme-corp/${projectName.toLowerCase()}`,
+        detectedFramework: currentProject.framework || 'Playwright',
+        language: currentProject.language || 'TypeScript',
         lastAnalyzed: 'Just now',
         status: 'ready',
-        defaultBranch: 'main',
+        defaultBranch: chosenRepo?.defaultBranch || 'main',
         testCount: 24,
         filesCount: 142,
         description: 'Self-healing test suite prepared with Playwright locator hooks.',
+        // Store installation_id and repo metadata for the webhook server
+        repoMetadata: {
+          full_name: currentProject.repoName || chosenRepo?.fullName || '',
+          branch: chosenRepo?.defaultBranch || 'main',
+          installation_id: githubInstallationId || sessionStorage.getItem('github_installation_id') || '',
+          framework: currentProject.framework || 'Playwright',
+          language: currentProject.language || 'TypeScript',
+          connected: true,
+          last_synced: new Date().toISOString(),
+        },
       };
 
       setProjects((prev) => [newProjectItem, ...prev]);

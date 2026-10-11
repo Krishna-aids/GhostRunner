@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TestRun, EvidenceArtifact, RepairProposal, ActionPlan } from '../../types/domain';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, normalizeConfidenceForDisplay, normalizeConfidenceForAPI } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../services/supabaseClient';
 import { RunStatusBadge } from '../shared/RunStatusBadge';
 import { FailureCategoryChip } from '../shared/FailureCategoryChip';
 import { RepairProposalCard } from '../shared/RepairProposalCard';
@@ -70,6 +71,41 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
     loadRunData();
   }, [runId, ownerId]);
 
+  // ── Supabase Realtime — auto-refresh when run row updates (e.g. Groq finishes analysis) ──
+  useEffect(() => {
+    const channel = supabase
+      .channel(`run-realtime-${runId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'test_runs',
+          filter: `id=eq.${runId}`,
+        },
+        (payload) => {
+          const updated = payload.new as TestRun;
+          // Update run inline for instant feedback
+          setRun((prev) => prev ? { ...prev, ...updated } : updated);
+          // If analysis complete / proposal created, reload full data (proposals list)
+          if (
+            updated.status === 'repair_proposed' ||
+            updated.status === 'passed' ||
+            updated.status === 'failed' ||
+            updated.status === 'needs_review'
+          ) {
+            loadRunData();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
   const handleProposalApproved = () => {
     setToastMessage('✅ Repair approved! Test Version v2 created and verified.');
     loadRunData();
@@ -92,7 +128,8 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
         method: 'POST',
         body: JSON.stringify({
           reason: manualReason.trim(),
-          confidence: manualConfidence,
+          // Backend expects 0–1 float; UI slider is 1–100
+          confidence: normalizeConfidenceForAPI(manualConfidence),
           proposed_plan: parsedPlan,
         }),
       });
@@ -185,18 +222,18 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
 
         {/* Confidence bar & Summary */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-          {run.confidence !== null && (
+          {run.confidence != null && (
             <div className="md:col-span-4 p-4 rounded-xl bg-surface-subtle border border-border-subtle flex flex-col gap-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-text-secondary">Diagnosis Confidence</span>
                 <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                  {run.confidence}% Confident
+                  {normalizeConfidenceForDisplay(run.confidence)}% Confident
                 </span>
               </div>
               <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${run.confidence}%` }}
+                  style={{ width: `${normalizeConfidenceForDisplay(run.confidence)}%` }}
                 />
               </div>
               <span className="text-[11px] text-text-muted">
@@ -205,7 +242,7 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
             </div>
           )}
 
-          <div className={`${run.confidence !== null ? 'md:col-span-8' : 'md:col-span-12'} flex flex-col gap-1`}>
+          <div className={`${run.confidence != null ? 'md:col-span-8' : 'md:col-span-12'} flex flex-col gap-1`}>
             <span className="text-xs font-mono text-text-muted uppercase tracking-wider">
               Execution Summary
             </span>
@@ -254,6 +291,7 @@ export const RunDetailPage: React.FC<RunDetailPageProps> = ({
                   key={prop.id}
                   proposal={prop}
                   runId={run.id}
+                  ownerId={ownerId}
                   onApproved={handleProposalApproved}
                   onValidated={loadRunData}
                   onRejected={() => {

@@ -34,6 +34,7 @@ import { ProjectsPage } from './components/pages/ProjectsPage';
 import { ProjectDetailPage } from './components/pages/ProjectDetailPage';
 import { TestDetailPage } from './components/pages/TestDetailPage';
 import { RunDetailPage } from './components/pages/RunDetailPage';
+import { handleOAuthCallback } from './services/githubService';
 
 export type AppRoute =
   | 'landing'
@@ -117,6 +118,32 @@ function AppContent() {
   const [selectedRunId, setSelectedRunId] = useState<string>(
     initialParsed.runId || 'run-demo-2'
   );
+
+  // ── Handle GitHub OAuth callback at root level ───────────────────────────
+  // Runs once on mount. Captures github_token + github_user from URL query params
+  // immediately, regardless of which component is currently mounted. This prevents
+  // the token from being lost when the user lands on /app after GitHub redirects.
+  useEffect(() => {
+    const oauthResult = handleOAuthCallback();
+    if (oauthResult) {
+      // Restore the project context the user was on before the OAuth redirect
+      const savedProjectId = localStorage.getItem('github_oauth_return_project');
+      if (savedProjectId) {
+        localStorage.removeItem('github_oauth_return_project');
+        setSelectedProjectId(savedProjectId);
+        setRoute('project-detail');
+        try {
+          window.history.replaceState({}, '', `/projects/${savedProjectId}`);
+        } catch {}
+        return;
+      }
+      // No saved project — just go to projects list
+      setRoute('projects');
+      try {
+        window.history.replaceState({}, '', '/projects');
+      } catch {}
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // If user is authenticated and navigating to login/signup, redirect to projects automatically
   useEffect(() => {
@@ -587,9 +614,14 @@ function AppContent() {
 
                   {currentTab === 'healing-queue' && (
                     <HealingQueueView
-                      items={healingQueue}
-                      onApproveItem={handleApproveHealingItem}
-                      onRejectItem={handleRejectHealingItem}
+                      ownerId={user?.id}
+                      onOpenRun={(runId, testDefId) => {
+                        // Navigate to the run's URL so full RunDetailPage loads
+                        const path = testDefId
+                          ? `/tests/${testDefId}/runs/${runId}`
+                          : `/runs/${runId}`;
+                        window.location.href = path;
+                      }}
                       onOpenTestRuns={() => setCurrentTab('test-runs')}
                     />
                   )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Project, TestDefinition, RequiredAssertion } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { GitHubRepoPicker, type GitHubRepoSelection } from '../GitHubRepoPicker';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -23,9 +24,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // GitHub connect state
-  const [githubUrl, setGithubUrl] = useState('');
+  // Repository connect state
   const [isConnectingGit, setIsConnectingGit] = useState(false);
+  const [showRepoPicker, setShowRepoPicker] = useState(false);
 
   // ZIP upload state
   const [isUploadingZip, setIsUploadingZip] = useState(false);
@@ -63,11 +64,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
       ]);
       setProject(projData);
       setTests(testsData);
-
-      const repoMeta = projData.repo_metadata as Record<string, unknown> | null;
-      if (repoMeta?.github_url) {
-        setGithubUrl(repoMeta.github_url as string);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load project details');
     } finally {
@@ -79,21 +75,29 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
     loadData();
   }, [projectId, ownerId]);
 
-  // Connect GitHub URL
-  const handleConnectGitHub = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!githubUrl.trim()) return;
+  // Connect repo via GitHubRepoPicker selection
+  const handleRepoSelected = async (selection: GitHubRepoSelection) => {
     setIsConnectingGit(true);
     try {
       await apiFetch(`/projects/${projectId}/repository`, ownerId, {
         method: 'POST',
-        body: JSON.stringify({ github_url: githubUrl.trim() }),
+        body: JSON.stringify({
+          github_url: selection.repo.html_url,
+          github_full_name: selection.repo.full_name,
+          default_branch: selection.repo.default_branch,
+          selected_branch: selection.branch,
+          language: selection.repo.language,
+          private: selection.repo.private,
+          connected: true,
+          last_synced: new Date().toISOString(),
+        }),
       });
-      setToastMessage('GitHub connected ✅');
-      setTimeout(() => setToastMessage(null), 3000);
+      setShowRepoPicker(false);
+      setToastMessage(`Connected to ${selection.repo.full_name} (${selection.branch}) ✅`);
+      setTimeout(() => setToastMessage(null), 4000);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error connecting GitHub repository');
+      alert(err instanceof Error ? err.message : 'Error connecting repository');
     } finally {
       setIsConnectingGit(false);
     }
@@ -200,6 +204,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
 
   const repoMeta = project.repo_metadata as Record<string, unknown> | null;
   const isConnectedOrUploaded = Boolean(repoMeta?.connected || repoMeta?.github_url || repoMeta?.stack);
+  const githubFullName = repoMeta?.github_full_name as string | undefined;
+  const selectedBranch = repoMeta?.selected_branch as string | undefined || repoMeta?.default_branch as string | undefined;
+  const repoLanguage = repoMeta?.language as string | undefined;
+  const isPrivateRepo = repoMeta?.private as boolean | undefined;
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
@@ -250,53 +258,58 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
           )}
         </div>
 
-        {/* Connect Action Row */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-          {/* GitHub input */}
-          <form onSubmit={handleConnectGitHub} className="md:col-span-8 flex items-center gap-2">
-            <div className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-text-muted">
-                link
-              </span>
-              <input
-                type="text"
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                placeholder="github.com/owner/repo"
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-subtle border border-border-strong text-text-primary text-xs focus:outline-none focus:border-primary transition-all font-mono"
+        {/* Connect Action — GitHub Repo Picker or ZIP upload */}
+        <div className="flex flex-col gap-4">
+          {/* GitHub Repo Picker toggle */}
+          {!showRepoPicker && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowRepoPicker(true)}
+                disabled={isConnectingGit}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#24292f] hover:bg-[#1c2128] text-white text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                  <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.09.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.577.688.479C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                </svg>
+                {isConnectedOrUploaded ? 'Change Repository' : 'Connect GitHub Repository'}
+              </button>
+
+              <span className="text-xs text-text-muted">or</span>
+
+              <input type="file" ref={fileInputRef} accept=".zip" onChange={handleZipFileSelected} className="hidden" />
+              <button
+                type="button"
+                disabled={isUploadingZip}
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-surface-subtle border border-border-strong text-text-primary text-xs font-semibold hover:bg-surface-canvas transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px] text-text-secondary">folder_zip</span>
+                <span>{isUploadingZip ? 'Uploading…' : 'Upload ZIP for Inspection'}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Repo Picker Popout */}
+          {showRepoPicker && (
+            <div className="p-4 rounded-xl border border-border-strong bg-surface-canvas flex flex-col gap-3">
+              <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                <span className="text-xs font-semibold text-text-primary">Select a GitHub Repository</span>
+                <button
+                  type="button"
+                  onClick={() => setShowRepoPicker(false)}
+                  className="text-text-muted hover:text-text-primary text-sm cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <GitHubRepoPicker
+                onSelect={handleRepoSelected}
+                selectedRepoFullName={githubFullName}
+                returnProjectId={projectId}
               />
             </div>
-            <button
-              type="submit"
-              disabled={isConnectingGit || !githubUrl.trim()}
-              className="px-4 py-2 rounded-xl bg-surface-canvas border border-border-strong text-text-primary text-xs font-semibold hover:bg-surface-subtle transition-all cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-40"
-            >
-              {isConnectingGit ? 'Connecting...' : 'Connect GitHub'}
-            </button>
-          </form>
-
-          {/* Divider on mobile / or label */}
-          <div className="md:col-span-4 flex items-center gap-2">
-            <span className="text-xs text-text-muted">or</span>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".zip"
-              onChange={handleZipFileSelected}
-              className="hidden"
-            />
-            <button
-              type="button"
-              disabled={isUploadingZip}
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-surface-subtle border border-border-strong text-text-primary text-xs font-semibold hover:bg-surface-canvas transition-all cursor-pointer shadow-xs disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[16px] text-text-secondary">
-                folder_zip
-              </span>
-              <span>{isUploadingZip ? 'Uploading...' : 'Upload ZIP'}</span>
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Inspection Card if Connected / Uploaded */}
@@ -306,13 +319,33 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">verified</span>
               </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-text-primary">
-                  Stack: {String(repoMeta?.stack || 'Next.js 14')} ✅
-                </span>
-                <span className="text-text-muted font-mono text-[11px]">
-                  Components: {String(repoMeta?.components || '23')} · Routes: {String(repoMeta?.routes || '12')} · Files: {String(repoMeta?.files || '45')}
-                </span>
+              <div className="flex flex-col gap-0.5">
+                {githubFullName ? (
+                  <>
+                    <span className="font-semibold text-text-primary flex items-center gap-2">
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current text-text-secondary">
+                        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.09.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.577.688.479C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                      </svg>
+                      {githubFullName}
+                      {isPrivateRepo && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">Private</span>
+                      )}
+                    </span>
+                    <span className="text-text-muted font-mono text-[11px]">
+                      Branch: {selectedBranch || 'main'}
+                      {repoLanguage && ` · Language: ${repoLanguage}`}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold text-text-primary">
+                      Stack: {String(repoMeta?.stack || 'Detected')} ✅
+                    </span>
+                    <span className="text-text-muted font-mono text-[11px]">
+                      Components: {String(repoMeta?.components || '—')} · Routes: {String(repoMeta?.routes || '—')} · Files: {String(repoMeta?.files || '—')}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 

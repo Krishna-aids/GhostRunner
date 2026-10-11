@@ -1,7 +1,8 @@
-/**
+﻿/**
  * GhostRunner API Client
  *
  * Primary: routes through Supabase when configured (RLS-secured, real data).
+ * FastAPI backend: used for run creation (real Playwright execution) and repair approval.
  * Fallback: local demo store for offline/demo scenarios.
  */
 
@@ -20,9 +21,80 @@ import * as db from '../services/supabaseDataService';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+// -- Demo Mode Flag -----------------------------------------------------------
+// Set by AuthContext when enterDemoMode() is called. When true, apiFetch skips
+// Supabase entirely and uses the local in-memory demo store instead.
+let _isDemoMode = false;
+export function setApiDemoMode(isDemoMode: boolean): void {
+  _isDemoMode = isDemoMode;
+}
+
+
+// ── Confidence Normalization Helpers ─────────────────────────────────────────
+// Backend stores confidence as 0.0–1.0 float; demo store uses 0–100 integers.
+
+/** Convert raw confidence (0–1 from backend, or 0–100 from demo) to display percentage (0–100). */
+export function normalizeConfidenceForDisplay(raw: number | null | undefined): number {
+  if (raw == null) return 0;
+  return raw <= 1.0 ? Math.round(raw * 100) : Math.round(raw);
+}
+
+/** Convert a UI percentage (0–100) to the 0–1 float the backend expects. */
+export function normalizeConfidenceForAPI(uiValue: number): number {
+  return Math.min(1.0, Math.max(0.0, uiValue / 100));
+}
+
+// ── FastAPI Backend Fetch ─────────────────────────────────────────────────────
+
+/**
+ * Call the deployed FastAPI backend directly.
+ * Used for run creation (real Playwright sandbox) and repair approval.
+ * Sends X-User-Id header; NEVER logs the auth token.
+ */
+async function backendFetch<T>(
+  endpoint: string,
+  userId: string,
+  options: RequestInit = {}
+): Promise<T> {
+  if (!BASE_URL) throw new Error('VITE_API_BASE_URL is not configured');
+  const url = `${BASE_URL.replace(/\/$/, '')}${endpoint}`;
+
+  const headers: Record<string, string> = {
+    'X-User-Id': userId,
+  };
+  if (options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+  // Include GitHub token for auth if available — never log it
+  const ghToken = localStorage.getItem('github_access_token') || sessionStorage.getItem('github_access_token');
+  if (ghToken) {
+    headers['Authorization'] = `Bearer ${ghToken}`;
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...headers, ...(options.headers as Record<string, string> || {}) },
+  });
+
+  if (!res.ok) {
+    let errorMsg = `Backend API error: ${res.status}`;
+    try {
+      const errBody = await res.json();
+      if (Array.isArray(errBody?.detail)) {
+        errorMsg = errBody.detail.map((d: { msg: string }) => d.msg).join('; ');
+      } else if (typeof errBody?.detail === 'string') {
+        errorMsg = errBody.detail;
+      }
+    } catch { /* ignore parse failures */ }
+    throw new Error(errorMsg);
+  }
+
+  return res.json() as Promise<T>;
+}
+
 // ── In-Memory / Session Seeded Data for Resilient Demo Mode ──────────────────
 
-const STORAGE_KEY = 'ghostrunner_demo_store_v1';
+const STORAGE_KEY = 'ghostrunner_demo_store_v2';
 
 interface DemoStore {
   projects: Project[];
@@ -255,7 +327,8 @@ function getInitialStore(): DemoStore {
 
 function loadStore(): DemoStore {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    // localStorage persists across sessions; also accept legacy sessionStorage key
+    const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem('ghostrunner_demo_store_v1');
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
@@ -267,9 +340,9 @@ function loadStore(): DemoStore {
 
 function saveStore(store: DemoStore): void {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {
-    // ignore
+    // ignore quota errors
   }
 }
 
@@ -344,11 +417,53 @@ async function supabaseFetch<T>(
     return db.fetchRunsForTest(testRunsMatch[1]) as unknown as T;
   }
 
-  // POST /tests/:id/runs
+  // POST /tests/:id/runs — create run record in Supabase, then trigger real execution
   if (testRunsMatch && method === 'POST') {
-    const testDef = await db.fetchTestById(testRunsMatch[1]).catch(() => null);
+    const testId = testRunsMatch[1];
+    const runBody = body || {};
+
+    // 1. Fetch test definition to get project + version info
+    const testDef = await db.fetchTestById(testId).catch(() => null);
     const versionId = testDef?.active_version_id || `ver-${Date.now()}`;
-    return db.createTestRun(testRunsMatch[1], versionId, ownerId) as unknown as T;
+
+    // 2. Create a 'queued' run record in Supabase
+    const run = await db.createTestRun(testId, versionId, ownerId);
+
+    // 3. Fire off real execution via webhook server (non-blocking)
+    const webhookBase = (import.meta as any).env?.VITE_WEBHOOK_URL || 'http://localhost:4000';
+    const repoMeta = runBody.repo_metadata as Record<string, string> | undefined;
+
+    if (repoMeta?.full_name && repoMeta?.installation_id) {
+      fetch(`${webhookBase}/api/runs/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          runId: run.id,
+          projectId: testDef?.project_id || '',
+          repoFullName: repoMeta.full_name,
+          ref: repoMeta.branch || 'main',
+          installationId: parseInt(repoMeta.installation_id, 10) || 0,
+          commitSha: runBody.commit_sha,
+        }),
+      }).catch((err) =>
+        console.warn('[GhostRunner] Could not contact webhook runner:', err?.message)
+      );
+    } else {
+      // No repo linked — still trigger demo mode on the server
+      fetch(`${webhookBase}/api/runs/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          runId: run.id,
+          projectId: testDef?.project_id || '',
+          repoFullName: '',
+          ref: 'main',
+          installationId: 0,
+        }),
+      }).catch(() => { /* silent — demo mode */ });
+    }
+
+    return run as unknown as T;
   }
 
   // GET /runs/:id
@@ -386,13 +501,51 @@ async function supabaseFetch<T>(
   // POST /repair-proposals/:pid/approve
   const approveMatch = endpoint.match(/^\/repair-proposals\/([^/]+)\/approve$/);
   if (approveMatch && method === 'POST') {
+    const changeReason: string =
+      (body as Record<string, unknown>)?.change_reason as string
+      || 'Approved by user via GhostRunner UI';
+
+    // Route through webhook server — it creates the new test_version row and
+    // updates test_definitions.active_version_id, then marks proposal approved
+    const webhookBase = (import.meta as any).env?.VITE_WEBHOOK_URL || 'http://localhost:4000';
+    try {
+      const webhookRes = await fetch(
+        `${webhookBase}/api/repair-proposals/${approveMatch[1]}/approve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ change_reason: changeReason }),
+        }
+      );
+      if (webhookRes.ok) {
+        const data = await webhookRes.json();
+        return { success: true, ...data } as unknown as T;
+      }
+      console.warn('[GhostRunner] Webhook approve failed, falling back to Supabase only');
+    } catch (err) {
+      console.warn('[GhostRunner] Webhook approve unreachable:', err instanceof Error ? err.message : err);
+    }
+
+    // Fallback: at least mark the proposal approved in Supabase
     await db.approveRepairProposal(approveMatch[1]);
-    return { success: true, message: 'Repair proposal approved.' } as unknown as T;
+    return { success: true, message: 'Repair proposal approved (version creation requires webhook server).' } as unknown as T;
   }
 
   // POST /runs/:id/repair-proposals/:pid/validate
   const validateMatch = endpoint.match(/^\/runs\/([^/]+)\/repair-proposals\/([^/]+)\/validate$/);
   if (validateMatch && method === 'POST') {
+    if (BASE_URL) {
+      try {
+        await backendFetch(
+          `/runs/${validateMatch[1]}/repair-proposals/${validateMatch[2]}/validate`,
+          ownerId,
+          { method: 'POST' }
+        );
+        return { success: true } as unknown as T;
+      } catch (backendErr) {
+        console.warn('[GhostRunner] Backend validate failed, using Supabase:', backendErr instanceof Error ? backendErr.message : 'Unknown error');
+      }
+    }
     await db.approveRepairProposal(validateMatch[2]);
     return { success: true } as unknown as T;
   }
@@ -405,8 +558,8 @@ export async function apiFetch<T>(
   ownerId: string = 'user-demo-1406',
   options: RequestInit = {}
 ): Promise<T> {
-  // ── Supabase Routing (primary when configured) ────────────────────────────
-  if (isSupabaseConfigured()) {
+  // ── Supabase Routing (primary when configured, but skip if in demo mode) ──
+  if (isSupabaseConfigured() && !_isDemoMode) {
     try {
       return await supabaseFetch<T>(endpoint, ownerId, options);
     } catch (err) {
@@ -559,16 +712,16 @@ export async function apiFetch<T>(
       test_definition_id: tId,
       test_version_id: testDef?.active_version_id || 'ver-1',
       owner_id: ownerId,
-      status: 'queued',
+      status: 'running',
       classification: null,
       confidence: null,
-      summary: 'Test execution initiated in demo container...',
+      summary: '🚀 Playwright Chromium worker starting...',
       environment_ref: 'demo-env',
       started_at: new Date().toISOString(),
       finished_at: null,
       parent_run_id: null,
       created_at: new Date().toISOString(),
-      duration: isV2 ? '12s' : '8s',
+      duration: isV2 ? '11s' : '8s',
       run_number: (store.runs[tId]?.length || 0) + 1,
     };
 
@@ -634,6 +787,33 @@ export async function apiFetch<T>(
     }
 
     saveStore(store);
+
+    // Auto-advance status after realistic delay so polling sees terminal state
+    const _advMs = (store.runs[tId]?.[0]?.run_number === 1) ? 5000 : 7000;
+    setTimeout(() => {
+      try {
+        const live = loadStore();
+        for (const _tid in live.runs) {
+          const _idx = live.runs[_tid].findIndex((r) => r.id === runId);
+          if (_idx !== -1) {
+            const hasProposal = (live.proposals[runId] || []).length > 0;
+            live.runs[_tid][_idx] = {
+              ...live.runs[_tid][_idx],
+              status: hasProposal ? 'repair_proposed' : 'passed',
+              classification: hasProposal ? 'LOCATOR_DRIFT' : null,
+              confidence: hasProposal ? 91 : null,
+              summary: hasProposal
+                ? 'LOCATOR_DRIFT (91%): #checkout-btn missing — repair proposal ready.'
+                : 'All 3 steps executed cleanly. ✅ Passed.',
+              finished_at: new Date().toISOString(),
+            };
+            saveStore(live);
+            break;
+          }
+        }
+      } catch { /* ignore */ }
+    }, _advMs);
+
     return newRun as unknown as T;
   }
 
@@ -765,7 +945,7 @@ export async function apiFetch<T>(
         summary: 'Self-healed action plan validated: Test passed on v2 locators.',
         environment_ref: 'demo-env',
         started_at: new Date().toISOString(),
-        finished_at: new Date(Date.now() + 12000).toISOString(),
+        finished_at: new Date().toISOString(),
         parent_run_id: targetRun.id,
         created_at: new Date().toISOString(),
         duration: '12s',
@@ -788,9 +968,13 @@ export async function apiFetch<T>(
 // ── Store Reset Helper for Demo ──────────────────────────────────────────────
 export function resetDemoStore(): void {
   try {
-    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem('ghostrunner_demo_store_v1');
   } catch {
     // ignore
   }
+  // Re-seed with fresh initial state
+  saveStore(getInitialStore());
 }
+
 

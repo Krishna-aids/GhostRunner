@@ -38,14 +38,21 @@ const GITHUB_APP_NAME = import.meta.env.VITE_GITHUB_APP_NAME || 'humantohumanapp
  * GitHub will redirect to our Setup URL (which should be set to /api/auth/github/callback)
  * containing `code`, `installation_id`, and `setup_action=install`.
  */
-export function initiateGitHubOAuth(): void {
+/**
+ * @param returnProjectId - if provided, the project page to return to after OAuth completes.
+ *   Stored in localStorage so App.tsx can redirect back after the OAuth callback lands.
+ */
+export function initiateGitHubOAuth(returnProjectId?: string): void {
   const state = crypto.randomUUID();
-  sessionStorage.setItem('github_oauth_state', state);
+  // Use localStorage so the state survives the GitHub redirect (cross-tab / cross-origin)
+  localStorage.setItem('github_oauth_state', state);
 
-  const params = new URLSearchParams({
-    state,
-  });
+  // Save where to return after OAuth so the user lands back on their project page
+  if (returnProjectId) {
+    localStorage.setItem('github_oauth_return_project', returnProjectId);
+  }
 
+  const params = new URLSearchParams({ state });
   window.location.href = `https://github.com/apps/${GITHUB_APP_NAME}/installations/new?${params.toString()}`;
 }
 
@@ -59,10 +66,11 @@ export function handleOAuthCallback(): { token: string; username: string } | nul
   const username = params.get('github_user');
 
   if (token && username) {
-    sessionStorage.setItem('github_access_token', token);
-    sessionStorage.setItem('github_username', username);
+    // Use localStorage so the connection persists across refreshes and new tabs
+    localStorage.setItem('github_access_token', token);
+    localStorage.setItem('github_username', username);
 
-    // Clean URL
+    // Clean URL (remove token from address bar)
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, '', cleanUrl);
 
@@ -76,8 +84,9 @@ export function handleOAuthCallback(): { token: string; username: string } | nul
  * Check if the user is already authenticated with GitHub.
  */
 export function getStoredGitHubAuth(): { token: string; username: string } | null {
-  const token = sessionStorage.getItem('github_access_token');
-  const username = sessionStorage.getItem('github_username');
+  // localStorage persists across sessions; sessionStorage is the fallback for older entries
+  const token = localStorage.getItem('github_access_token') || sessionStorage.getItem('github_access_token');
+  const username = localStorage.getItem('github_username') || sessionStorage.getItem('github_username');
 
   if (token && username) {
     return { token, username };
@@ -89,6 +98,10 @@ export function getStoredGitHubAuth(): { token: string; username: string } | nul
  * Clear stored GitHub auth.
  */
 export function clearGitHubAuth(): void {
+  localStorage.removeItem('github_access_token');
+  localStorage.removeItem('github_username');
+  localStorage.removeItem('github_oauth_state');
+  // Also clear sessionStorage entries from older format
   sessionStorage.removeItem('github_access_token');
   sessionStorage.removeItem('github_username');
   sessionStorage.removeItem('github_oauth_state');

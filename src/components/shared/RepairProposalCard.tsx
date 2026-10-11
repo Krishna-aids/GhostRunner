@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { RepairProposal } from '../../types/domain';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, normalizeConfidenceForDisplay } from '../../lib/api';
 
 interface RepairProposalCardProps {
   proposal: RepairProposal;
   runId: string;
+  ownerId: string;
   onApproved: () => void;
   onValidated?: () => void;
   onRejected?: () => void;
@@ -13,11 +14,13 @@ interface RepairProposalCardProps {
 export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
   proposal,
   runId,
+  ownerId,
   onApproved,
   onValidated,
   onRejected,
 }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmReason, setConfirmReason] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -26,7 +29,7 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
     setIsValidating(true);
     setStatusMessage(null);
     try {
-      await apiFetch(`/runs/${runId}/repair-proposals/${proposal.id}/validate`, 'user-demo-1406', {
+      await apiFetch(`/runs/${runId}/repair-proposals/${proposal.id}/validate`, ownerId, {
         method: 'POST',
       });
       setStatusMessage({ type: 'success', text: 'Validation passed! Selector resolved in DOM.' });
@@ -45,10 +48,14 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
     setIsApproving(true);
     setStatusMessage(null);
     try {
-      await apiFetch(`/repair-proposals/${proposal.id}/approve`, 'user-demo-1406', {
+      await apiFetch(`/repair-proposals/${proposal.id}/approve`, ownerId, {
         method: 'POST',
+        body: JSON.stringify({
+          change_reason: confirmReason.trim() || 'Approved by user via GhostRunner UI',
+        }),
       });
       setShowConfirmModal(false);
+      setConfirmReason('');
       setStatusMessage({ type: 'success', text: '✅ Repair approved! Test version v2 created and validated.' });
       onApproved();
     } catch (err) {
@@ -87,7 +94,7 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
 
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-semibold">
-              {proposal.confidence}% Confidence
+              {normalizeConfidenceForDisplay(proposal.confidence)}% Confidence
             </span>
             <span
               className={`font-mono text-xs px-2.5 py-1 rounded-lg border uppercase font-medium ${
@@ -210,9 +217,16 @@ export const RepairProposalCard: React.FC<RepairProposalCardProps> = ({
               Are you sure you want to approve this repair? This will automatically create a new test version (<strong>v2</strong>) with the healed semantic selector and immediately trigger a validation re-run.
             </p>
 
-            <div className="p-3 rounded-xl bg-surface-muted border border-border-subtle text-xs font-mono text-text-primary space-y-1">
-              <div><strong>Replaced:</strong> <code className="text-rose-600 dark:text-rose-400 line-through">.checkout-btn</code></div>
-              <div><strong>Healed:</strong> <code className="text-emerald-600 dark:text-emerald-400">role: &quot;button&quot;, name: &quot;Place Order&quot;</code></div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-text-primary">Reason for Approval</label>
+              <textarea
+                rows={2}
+                value={confirmReason}
+                onChange={(e) => setConfirmReason(e.target.value)}
+                placeholder="e.g. Verified selector matches semantic role in staging environment"
+                className="w-full px-3 py-2 rounded-xl bg-surface-subtle border border-border-strong text-text-primary text-xs focus:outline-none focus:border-primary transition-all font-body-md resize-none"
+              />
+              <span className="text-[10px] text-text-muted">Optional — defaults to &quot;Approved by user via GhostRunner UI&quot;</span>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle">

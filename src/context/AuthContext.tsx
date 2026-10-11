@@ -14,9 +14,10 @@ import {
   mapSupabaseUser,
 } from '../services/authService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
+import { setApiDemoMode } from '../lib/api';
 
 export const DEMO_USER: AuthUser = {
-  id: 'user-demo-elena',
+  id: 'user-demo-1406',
   email: 'elena.rostova@acme.corp',
   name: 'Elena Rostova',
   role: 'QA Lead',
@@ -121,11 +122,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setSession(null);
     setIsDemoMode(false);
+    setApiDemoMode(false); // re-enable Supabase routing on sign out
   };
 
   const enterDemoMode = () => {
     setUser(DEMO_USER);
     setIsDemoMode(true);
+    setApiDemoMode(true); // tell apiFetch to skip Supabase for demo users
   };
 
   const isAuthenticated = useMemo(() => {

@@ -1,53 +1,141 @@
-import React, { useState } from 'react';
-import { HealingQueueItem } from '../types';
+/**
+ * HealingQueueView — Real Supabase-backed Repair Queue
+ *
+ * Fetches all repair_proposals for this owner's runs from Supabase,
+ * subscribes to Realtime inserts so new proposals appear instantly,
+ * and lets the user navigate to a proposal's RunDetailPage.
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { RepairProposal } from '../types/domain';
+import { apiFetch, normalizeConfidenceForDisplay } from '../lib/api';
+import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../context/AuthContext';
 
 interface HealingQueueViewProps {
-  items: HealingQueueItem[];
-  onApproveItem: (id: string) => void;
-  onRejectItem: (id: string) => void;
+  /** If provided, fetches proposals for this specific owner. Falls back to auth user. */
+  ownerId?: string;
+  /** Navigate to the RunDetailPage for a run */
+  onOpenRun?: (runId: string, testDefinitionId?: string) => void;
   onOpenTestRuns: () => void;
 }
 
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  pending:        { label: 'Pending Review', color: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30',     icon: 'pending' },
+  validated_pass: { label: 'Validated ✓',    color: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30',        icon: 'verified' },
+  approved:       { label: 'Approved',        color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: 'check_circle' },
+  rejected:       { label: 'Rejected',        color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/30',       icon: 'cancel' },
+};
+
+const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  LOCATOR_DRIFT:             { label: 'Locator Drift',         icon: 'location_searching', color: 'text-amber-500' },
+  UI_FUNCTIONAL_REGRESSION:  { label: 'UI Regression',         icon: 'bug_report',         color: 'text-orange-500' },
+  API_FAILURE:               { label: 'API Failure',           icon: 'api',                color: 'text-red-500' },
+  ASSERTION_FAILURE:         { label: 'Assertion Failure',     icon: 'rule',               color: 'text-rose-500' },
+  ENVIRONMENT_FAILURE:       { label: 'Environment Error',     icon: 'dns',                color: 'text-purple-500' },
+  AMBIGUOUS_REQUIRES_REVIEW: { label: 'Needs Manual Review',   icon: 'help_center',        color: 'text-slate-500' },
+};
+
 export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
-  items,
-  onApproveItem,
-  onRejectItem,
+  ownerId: ownerIdProp,
+  onOpenRun,
   onOpenTestRuns,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [testingItemId, setTestingItemId] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<{ id: string; success: boolean; message: string } | null>(null);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [customSelector, setCustomSelector] = useState('');
+  const { user } = useAuth();
+  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
 
-  const filteredItems = items.filter((item) => {
+  const [proposals, setProposals] = useState<RepairProposal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  // ── Load proposals ────────────────────────────────────────────────────────
+  const loadProposals = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Use Supabase directly for flexibility — join with test_runs to get classification
+      const { data, error } = await supabase
+        .from('repair_proposals')
+        .select(`
+          *,
+          test_runs (
+            id,
+            status,
+            classification,
+            confidence,
+            environment_ref,
+            test_definition_id
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setProposals((data as unknown as RepairProposal[]) || []);
+    } catch (err) {
+      console.warn('[HealingQueueView] Failed to load proposals:', err);
+      // Fallback: try apiFetch which uses demo store if Supabase is unconfigured
+      try {
+        const fallback = await apiFetch<RepairProposal[]>('/repair-proposals', ownerId);
+        setProposals(Array.isArray(fallback) ? fallback : []);
+      } catch {
+        setProposals([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [ownerId]);
+
+  useEffect(() => {
+    loadProposals();
+  }, [loadProposals]);
+
+  // ── Realtime: auto-append new proposals as Groq creates them ─────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel('healing-queue-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'repair_proposals' },
+        (payload) => {
+          console.log('[HealingQueueView] New proposal received via Realtime');
+          setProposals((prev) => [payload.new as RepairProposal, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'repair_proposals' },
+        (payload) => {
+          setProposals((prev) =>
+            prev.map((p) => p.id === (payload.new as RepairProposal).id
+              ? { ...p, ...(payload.new as RepairProposal) }
+              : p
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // ── Filtered list ─────────────────────────────────────────────────────────
+  const filtered = proposals.filter((p) => {
     if (filter === 'all') return true;
-    return item.status === filter;
+    if (filter === 'pending') return p.validation_status === 'pending' || p.validation_status === 'validated_pass';
+    return p.validation_status === filter;
   });
 
-  const handleTestInLiveDOM = (item: HealingQueueItem) => {
-    setTestingItemId(item.id);
-    setTestResult(null);
+  const pendingCount = proposals.filter((p) =>
+    p.validation_status === 'pending' || p.validation_status === 'validated_pass'
+  ).length;
 
-    setTimeout(() => {
-      setTestingItemId(null);
-      if (item.confidence >= 70) {
-        setTestResult({
-          id: item.id,
-          success: true,
-          message: `Staging DOM Match Verified: 1 matching element found for "${item.proposedSelector}" in 14ms.`,
-        });
-      } else {
-        setTestResult({
-          id: item.id,
-          success: false,
-          message: `Staging DOM Match Ambiguous: Found 2 matching elements for "${item.proposedSelector}". Refine selector to avoid strict mode violation.`,
-        });
-      }
-    }, 1200);
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const getRunData = (p: RepairProposal) => (p as any).test_runs || {};
+  const getCategory = (p: RepairProposal) => {
+    const cat = getRunData(p).classification || 'AMBIGUOUS_REQUIRES_REVIEW';
+    return CATEGORY_CONFIG[cat] || CATEGORY_CONFIG['AMBIGUOUS_REQUIRES_REVIEW'];
   };
-
-  const pendingCount = items.filter((i) => i.status === 'pending').length;
+  const getStatusCfg = (p: RepairProposal) =>
+    STATUS_CONFIG[p.validation_status] || STATUS_CONFIG['pending'];
 
   return (
     <div className="flex flex-col gap-space-lg">
@@ -58,283 +146,195 @@ export const HealingQueueView: React.FC<HealingQueueViewProps> = ({
             <h1 className="font-headline-lg text-headline-lg text-text-primary">
               Self-Healing Queue
             </h1>
-            <span className="inline-flex items-center px-space-sm py-0.5 rounded-full bg-status-warning-subtle text-status-warning border border-status-warning/30 font-code-sm text-code-sm font-semibold">
-              {pendingCount} pending reviews
-            </span>
+            {pendingCount > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                {pendingCount} Pending
+              </span>
+            )}
           </div>
-          <p className="font-body-md text-body-md text-text-secondary">
-            Inspect autonomous DOM mutations, verify confidence scores, and push upstream pull requests to update test specs.
+          <p className="text-text-secondary text-sm">
+            AI-generated repair proposals from Groq — review, validate, and approve to create new test versions.
           </p>
         </div>
-
-        <div className="flex items-center gap-space-sm self-start md:self-auto">
-          <button
-            onClick={onOpenTestRuns}
-            className="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-xl bg-surface-canvas shadow-sm text-text-primary hover:bg-surface-subtle transition-colors font-label-md text-label-md border border-border-subtle cursor-pointer"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            <span>Back to Test Runs</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={loadProposals}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-strong text-xs font-semibold text-text-primary hover:bg-surface-subtle transition-all cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[15px]">refresh</span>
+          Refresh
+        </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-        <div className="flex items-center gap-1 p-1 bg-surface-muted rounded-xl">
-          {[
-            { id: 'all', label: `All (${items.length})` },
-            { id: 'pending', label: `Pending (${items.filter((i) => i.status === 'pending').length})` },
-            { id: 'approved', label: `Approved (${items.filter((i) => i.status === 'approved').length})` },
-            { id: 'rejected', label: `Rejected (${items.filter((i) => i.status === 'rejected').length})` },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFilter(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-body-sm font-label-md transition-all cursor-pointer ${
-                filter === tab.id
-                  ? 'bg-surface-canvas text-text-primary font-semibold shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="hidden sm:flex items-center gap-2 text-text-muted text-xs">
-          <span className="w-2 h-2 rounded-full bg-status-healed"></span>
-          <span>Safety Cutoff: 70% Confidence</span>
-        </div>
+      <div className="flex gap-1 bg-surface-subtle p-1 rounded-xl border border-border-subtle w-fit">
+        {(['all', 'pending', 'approved', 'rejected'] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
+              filter === f
+                ? 'bg-surface-canvas text-text-primary shadow-xs border border-border-subtle'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            {f}
+            {f === 'pending' && pendingCount > 0 && (
+              <span className="ml-1 text-amber-500">{pendingCount}</span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Queue Cards List */}
-      <div className="flex flex-col gap-space-md">
-        {filteredItems.length === 0 ? (
-          <div className="p-12 text-center bg-surface-canvas rounded-xl border border-border-subtle flex flex-col items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-[36px] text-status-healed">
-              verified
-            </span>
-            <p className="font-headline-sm text-text-primary">No items in this queue filter</p>
-            <p className="font-body-sm text-text-muted">
-              All self-healing proposals have been triaged or no mutations recorded.
+      {/* Loading state */}
+      {loading && (
+        <div className="flex flex-col gap-3 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 rounded-2xl bg-surface-canvas border border-border-subtle" />
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
+            <span className="material-symbols-outlined text-[32px] text-text-muted">auto_fix_high</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <h3 className="font-semibold text-text-primary">
+              {filter === 'all' ? 'No repair proposals yet' : `No ${filter} proposals`}
+            </h3>
+            <p className="text-xs text-text-muted max-w-xs">
+              {filter === 'all'
+                ? 'Run a test that fails — Groq will automatically analyze the failure and generate a repair proposal here.'
+                : `Switch to "All" to see proposals in other states.`}
             </p>
           </div>
-        ) : (
-          filteredItems.map((item) => {
-            const isApproved = item.status === 'approved';
-            const isRejected = item.status === 'rejected';
-            const isTesting = testingItemId === item.id;
-            const currentTestResult = testResult?.id === item.id ? testResult : null;
+          <button
+            type="button"
+            onClick={onOpenTestRuns}
+            className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-95 cursor-pointer"
+          >
+            View Test Runs
+          </button>
+        </div>
+      )}
+
+      {/* Proposal Cards */}
+      {!loading && filtered.length > 0 && (
+        <div className="flex flex-col gap-4">
+          {filtered.map((proposal) => {
+            const run = getRunData(proposal);
+            const cat = getCategory(proposal);
+            const statusCfg = getStatusCfg(proposal);
+            const conf = Math.round(normalizeConfidenceForDisplay(proposal.confidence));
 
             return (
               <div
-                key={item.id}
-                className={`bg-surface-canvas rounded-xl border shadow-sm transition-all overflow-hidden ${
-                  isApproved
-                    ? 'border-status-success/40 bg-status-success-subtle/10'
-                    : isRejected
-                    ? 'border-status-failure/30 opacity-75'
-                    : 'border-border-subtle hover:border-border-strong'
-                }`}
+                key={proposal.id}
+                className="bg-surface-canvas rounded-2xl border-2 border-amber-500/20 hover:border-amber-500/40 transition-all p-5 flex flex-col gap-4 relative overflow-hidden group"
               >
-                {/* Header bar */}
-                <div className="p-space-md bg-surface-subtle border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-space-sm flex-wrap">
-                    <span className="font-code-md text-text-primary font-bold">
-                      {item.specFile}:{item.line}
-                    </span>
-                    <span className="font-code-sm text-text-secondary bg-surface-container px-2 py-0.5 rounded">
-                      {item.suite}
-                    </span>
-                    <span className="font-body-sm text-text-muted flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">alt_route</span>
-                      {item.branch}
-                    </span>
+                {/* Amber accent bar */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
+
+                {/* Header row */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">
+                        auto_fix_high
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-sm text-text-primary">
+                        Groq Repair Proposal
+                      </span>
+                      <span className="text-[11px] text-text-muted font-mono">
+                        {new Date(proposal.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                        {run.environment_ref ? ` · ${run.environment_ref}` : ''}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="font-body-sm text-text-muted text-xs">
-                      {item.dateDiscovered}
+                  <div className="flex items-center gap-2 flex-wrap self-start">
+                    {/* Category chip */}
+                    <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-lg bg-surface-subtle border border-border-subtle ${cat.color}`}>
+                      <span className="material-symbols-outlined text-[13px]">{cat.icon}</span>
+                      {cat.label}
                     </span>
-                    {isApproved && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-success-subtle text-status-success font-label-sm font-semibold border border-status-success/30">
-                        <span className="material-symbols-outlined text-[14px]">check</span>
-                        PR Created #403
-                      </span>
-                    )}
-                    {isRejected && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-failure-subtle text-status-failure font-label-sm font-semibold border border-status-failure/30">
-                        <span className="material-symbols-outlined text-[14px]">close</span>
-                        Rejected
-                      </span>
-                    )}
-                    {!isApproved && !isRejected && (
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-label-sm font-semibold border ${
-                          item.confidence >= 70
-                            ? 'bg-status-healed-subtle text-status-healed border-status-healed/30'
-                            : 'bg-status-warning-subtle text-status-warning border-status-warning/30'
-                        }`}
-                      >
-                        {item.confidence}% Match Confidence
-                      </span>
-                    )}
+
+                    {/* Status chip */}
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg border uppercase ${statusCfg.color}`}>
+                      {statusCfg.label}
+                    </span>
                   </div>
                 </div>
 
-                {/* Body Content */}
-                <div className="p-space-lg flex flex-col gap-space-md">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-label-md text-text-secondary text-xs uppercase tracking-wider">
-                      Affected Test Scenario
-                    </span>
-                    <span className="font-headline-sm text-text-primary font-medium">
-                      "{item.testName}"
+                {/* Confidence + Reason */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-surface-container rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all duration-700"
+                        style={{ width: `${conf}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">
+                      {conf}% conf
                     </span>
                   </div>
 
-                  {/* Diff Inspector Side-by-Side */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-                    {/* Broken */}
-                    <div className="p-space-md rounded-xl bg-status-failure-subtle/50 border border-status-failure/20 flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-label-sm text-status-failure font-semibold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[16px]">close</span>
-                          Broken In Code
-                        </span>
-                        <span className="font-code-sm text-text-muted">Line {item.line}</span>
-                      </div>
-                      <code className="font-code-sm text-status-failure bg-surface-canvas p-2 rounded-lg font-mono font-semibold break-all border border-status-failure/20">
-                        {item.brokenSelector}
-                      </code>
-                    </div>
+                  <p className="text-xs text-text-secondary leading-relaxed bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-800/30 p-3 rounded-xl">
+                    <span className="font-semibold text-text-primary">Root cause: </span>
+                    {proposal.reason}
+                  </p>
+                </div>
 
-                    {/* Proposed */}
-                    <div className="p-space-md rounded-xl bg-status-healed-subtle/50 border border-status-healed/20 flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-label-sm text-status-healed font-semibold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
-                          Synthesized Locator ({item.confidence}% Match)
-                        </span>
-                        <span className="font-code-sm text-status-healed font-medium">
-                          Used in {item.appliedRunsCount} successful runs
-                        </span>
-                      </div>
-                      {editingItemId === item.id ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={customSelector}
-                            onChange={(e) => setCustomSelector(e.target.value)}
-                            className="flex-1 font-code-sm bg-surface-canvas p-2 rounded-lg border border-primary focus:outline-none"
-                            placeholder="Enter custom selector..."
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              item.proposedSelector = customSelector;
-                              setEditingItemId(null);
-                            }}
-                            className="px-2 py-1 bg-primary text-white rounded text-xs"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      ) : (
-                        <code className="font-code-sm text-status-healed bg-surface-canvas p-2 rounded-lg font-mono font-semibold break-all border border-status-healed/20">
-                          {item.proposedSelector}
-                        </code>
-                      )}
-                    </div>
+                {/* Proposed plan preview */}
+                {proposal.proposed_plan?.steps?.length > 0 && (
+                  <div className="bg-[#0a0a0a] rounded-xl p-3 max-h-24 overflow-y-auto border border-border-subtle">
+                    <pre className="text-[11px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
+                      {JSON.stringify(proposal.proposed_plan, null, 2).slice(0, 400)}
+                      {JSON.stringify(proposal.proposed_plan, null, 2).length > 400 ? '\n...' : ''}
+                    </pre>
                   </div>
+                )}
 
-                  {/* AI Reasoning box */}
-                  <div className="p-space-sm bg-surface-subtle rounded-lg border border-border-subtle flex items-start gap-2 text-body-sm text-text-secondary">
-                    <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">
-                      psychology
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="font-label-sm font-semibold text-text-primary">
-                        Root-Cause & Structural Analysis:
-                      </span>
-                      <span>{item.reasoning}</span>
-                    </div>
-                  </div>
-
-                  {/* Staging DOM Test Result feedback */}
-                  {currentTestResult && (
-                    <div
-                      className={`p-2 rounded-lg text-body-sm flex items-center gap-2 ${
-                        currentTestResult.success
-                          ? 'bg-status-success-subtle text-status-success border border-status-success/30'
-                          : 'bg-status-warning-subtle text-status-warning border border-status-warning/30'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {currentTestResult.success ? 'check_circle' : 'warning'}
-                      </span>
-                      <span>{currentTestResult.message}</span>
-                    </div>
-                  )}
-
-                  {/* Actions Footer */}
-                  <div className="flex flex-wrap items-center justify-between gap-space-sm pt-2 border-t border-border-subtle">
-                    <div className="flex items-center gap-2">
+                {/* Actions */}
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-border-subtle">
+                  <span className="text-[11px] text-text-muted font-mono">
+                    run: {proposal.test_run_id?.slice(0, 8)}...
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {onOpenRun && (
                       <button
                         type="button"
-                        onClick={() => handleTestInLiveDOM(item)}
-                        disabled={isTesting}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-subtle hover:bg-surface-container text-text-primary text-xs font-label-md transition-colors border border-border-subtle cursor-pointer disabled:opacity-50"
+                        onClick={() => onOpenRun(proposal.test_run_id, run.test_definition_id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-strong text-xs font-semibold text-text-primary hover:bg-surface-subtle transition-all cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-[16px]">
-                          {isTesting ? 'sync' : 'network_check'}
-                        </span>
-                        <span>{isTesting ? 'Verifying in DOM...' : 'Verify on Staging DOM'}</span>
+                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                        View Run
                       </button>
-
+                    )}
+                    {proposal.validation_status === 'pending' && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setEditingItemId(item.id);
-                          setCustomSelector(item.proposedSelector);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-subtle hover:bg-surface-container text-text-secondary hover:text-text-primary text-xs font-label-md transition-colors border border-border-subtle cursor-pointer"
+                        onClick={() => onOpenRun?.(proposal.test_run_id, run.test_definition_id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer transition-all"
                       >
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
-                        <span>Edit Selector</span>
+                        <span className="material-symbols-outlined text-[14px]">check</span>
+                        Review &amp; Approve
                       </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {!isRejected && (
-                        <button
-                          type="button"
-                          onClick={() => onRejectItem(item.id)}
-                          className="px-3 py-1.5 rounded-lg text-status-failure hover:bg-status-failure-subtle text-xs font-label-md transition-colors cursor-pointer"
-                        >
-                          Reject Mutation
-                        </button>
-                      )}
-
-                      {!isApproved && (
-                        <button
-                          type="button"
-                          onClick={() => onApproveItem(item.id)}
-                          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-status-healed text-on-primary hover:opacity-90 font-label-md text-xs font-semibold shadow-xs transition-all cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">merge</span>
-                          <span>Approve & Create PR</span>
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 };

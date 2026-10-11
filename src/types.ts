@@ -76,6 +76,17 @@ export interface ProjectItem {
   testCount?: number;
   filesCount?: number;
   description?: string;
+  /** GitHub App metadata for triggering real test runs */
+  repoMetadata?: {
+    full_name: string;
+    branch: string;
+    installation_id: string;
+    framework?: string;
+    language?: string;
+    connected?: boolean;
+    last_synced?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface AnalysisStep {
