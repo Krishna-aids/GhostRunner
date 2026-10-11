@@ -14,7 +14,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { triggerTestRun, registerSseClient, unregisterSseClient } from './testRunner.js';
+import { triggerTestRun, registerSseClient, unregisterSseClient, broadcastToRun } from './testRunner.js';
 
 dotenv.config();
 
@@ -25,6 +25,7 @@ const GITHUB_APP_ID = process.env.GITHUB_APP_ID || '';
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -415,6 +416,14 @@ app.get('/api/runs/:runId/stream', (req: Request, res: Response) => {
     unregisterSseClient(runId, res);
     console.log(`   📡 SSE client disconnected for run: ${runId}`);
   });
+});
+
+// ─── Event Relay: Python Engine Progress & Log Events ───────────────────────
+app.post('/api/runs/:runId/events', (req: Request, res: Response) => {
+  const { runId } = req.params;
+  const event = req.body;
+  broadcastToRun(runId, event);
+  res.json({ ok: true });
 });
 
 // ─── Manual Run Trigger ────────────────────────────────────────────────────

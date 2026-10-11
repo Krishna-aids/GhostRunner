@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GhostRunner API Client
  *
  * Primary: routes through Supabase when configured (RLS-secured, real data).
@@ -444,12 +444,14 @@ async function supabaseFetch<T>(
           ref: repoMeta.branch || 'main',
           installationId: parseInt(repoMeta.installation_id, 10) || 0,
           commitSha: runBody.commit_sha,
+          testDefinitionId: testId,
+          fromVersionId: versionId,
         }),
       }).catch((err) =>
         console.warn('[GhostRunner] Could not contact webhook runner:', err?.message)
       );
     } else {
-      // No repo linked — still trigger demo mode on the server
+      // No repo linked — still trigger runner with testDefinitionId
       fetch(`${webhookBase}/api/runs/trigger`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -459,6 +461,8 @@ async function supabaseFetch<T>(
           repoFullName: '',
           ref: 'main',
           installationId: 0,
+          testDefinitionId: testId,
+          fromVersionId: versionId,
         }),
       }).catch(() => { /* silent — demo mode */ });
     }

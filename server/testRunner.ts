@@ -28,6 +28,9 @@ import { Response as ExpressResponse } from 'express';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const PYTHON_BACKEND_URL =
+  process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const WEBHOOK_PORT = parseInt(process.env.WEBHOOK_PORT || '4000', 10);
 
 function getSupabase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -50,7 +53,7 @@ export function unregisterSseClient(runId: string, res: ExpressResponse): void {
   sseClients.set(runId, clients.filter((c) => c !== res));
 }
 
-function broadcastToRun(runId: string, data: object): void {
+export function broadcastToRun(runId: string, data: object): void {
   const clients = sseClients.get(runId) || [];
   const payload = `data: ${JSON.stringify(data)}\n\n`;
   clients.forEach((res) => {
@@ -251,6 +254,53 @@ export async function triggerTestRun(opts: TriggerRunOptions): Promise<void> {
     await updateRunStatus(runId, { status: 'preparing', summary: 'Fetching repository...' });
     broadcastToRun(runId, { type: 'status', status: 'preparing' });
     setProgress(5);
+
+    // ── Step 1b: Python Execution Engine Delegation ───────────────────────
+    if (testDefinitionId) {
+      try {
+        log(`⚡ Delegating execution to Python Engine (${PYTHON_BACKEND_URL})...`);
+        const pyRes = await fetch(`${PYTHON_BACKEND_URL}/tests/${testDefinitionId}/runs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': opts.projectId || 'system',
+          },
+          body: JSON.stringify({
+            callback_url: `http://localhost:${WEBHOOK_PORT}`,
+            environment_ref: ref,
+          }),
+        });
+
+        if (pyRes.ok) {
+          const pyData = await pyRes.json() as {
+            id?: string;
+            status: string;
+            summary?: string;
+            classification?: string;
+            confidence?: number;
+          };
+          log(`✅ Python Engine execution finished: status=${pyData.status}`);
+          await updateRunStatus(runId, {
+            status: pyData.status,
+            summary: pyData.summary,
+            classification: pyData.classification,
+            confidence: pyData.confidence,
+            finished_at: new Date().toISOString(),
+          });
+          broadcastToRun(runId, {
+            type: 'done',
+            status: pyData.status,
+            summary: pyData.summary,
+          });
+          setProgress(100);
+          return;
+        } else {
+          log(`⚠️ Python engine returned status ${pyRes.status}. Continuing with standard runner...`);
+        }
+      } catch (pyErr) {
+        log(`ℹ️ Python engine unavailable (${pyErr instanceof Error ? pyErr.message : String(pyErr)}). Continuing with standard runner...`);
+      }
+    }
 
     // ── Step 2: Get installation token ────────────────────────────────────
     if (!isGitHubAppConfigured()) {
