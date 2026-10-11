@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, TestDefinition, RequiredAssertion } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -11,10 +12,12 @@ interface ProjectDetailPageProps {
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   projectId,
-  ownerId = 'user-demo-1406',
+  ownerId: ownerIdProp,
   onBackToProjects,
   onOpenTest,
 }) => {
+  const { user } = useAuth();
+  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
   const [project, setProject] = useState<Project | null>(null);
   const [tests, setTests] = useState<TestDefinition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

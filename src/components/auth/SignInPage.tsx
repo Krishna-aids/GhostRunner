@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthLayout } from './AuthLayout';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { authService, AuthValidators } from '../../services/authService';
@@ -22,6 +22,37 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendFeedback, setBackendFeedback] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState<{
+    code?: string;
+    description?: string;
+  } | null>(null);
+
+  // Parse error parameters from URL query string or hash (from Supabase OAuth redirects)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let code = urlParams.get('error') || urlParams.get('error_code');
+    let desc = urlParams.get('error_description');
+
+    if (!code && window.location.hash) {
+      const hashStr = window.location.hash.startsWith('#')
+        ? window.location.hash.substring(1)
+        : window.location.hash;
+      const hashParams = new URLSearchParams(hashStr);
+      code = hashParams.get('error') || hashParams.get('error_code') || code;
+      desc = hashParams.get('error_description') || desc;
+    }
+
+    if (code || desc) {
+      setOauthError({
+        code: code || 'OAuth Error',
+        description: desc
+          ? decodeURIComponent(desc.replace(/\+/g, ' '))
+          : 'Authentication failed with the external provider.',
+      });
+    }
+  }, []);
 
   // Validate on blur or submit
   const validate = () => {
@@ -83,6 +114,64 @@ export const SignInPage: React.FC<SignInPageProps> = ({
         </p>
       </div>
 
+      {/* OAuth Callback Error Alert with actionable guidance */}
+      {oauthError && (
+        <div className="mb-5 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700/60 text-red-950 dark:text-red-200 text-xs flex flex-col gap-2.5 animate-fadeIn">
+          <div className="flex items-start gap-2.5">
+            <span className="material-symbols-outlined text-[20px] text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0">
+              gpp_maybe
+            </span>
+            <div className="flex flex-col gap-1 w-full">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-slate-900 dark:text-white">
+                  Google OAuth Code Exchange Failed
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOauthError(null);
+                    try {
+                      window.history.replaceState({}, '', window.location.pathname);
+                    } catch {}
+                  }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs cursor-pointer"
+                  title="Dismiss alert"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-slate-700 dark:text-slate-300 text-xs font-mono bg-white/70 dark:bg-slate-900/60 p-2 rounded border border-red-200 dark:border-red-900/40 select-all">
+                {oauthError.description}
+              </p>
+
+              <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800/40 text-[11px] text-slate-700 dark:text-slate-300 flex flex-col gap-1.5">
+                <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[15px] text-amber-500">lightbulb</span>
+                  How to resolve this in Google Cloud &amp; Supabase:
+                </span>
+                <ol className="list-decimal pl-4 space-y-1 text-slate-600 dark:text-slate-400">
+                  <li>
+                    In <strong className="text-slate-900 dark:text-slate-200">Google Cloud Console &gt; APIs &amp; Services &gt; Credentials</strong>: open your OAuth 2.0 Web Client and add <code className="bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded font-mono text-[10px]">https://xjgxnpnfeabiyqsdyljo.supabase.co/auth/v1/callback</code> to <em>Authorized redirect URIs</em>.
+                  </li>
+                  <li>
+                    In <strong className="text-slate-900 dark:text-slate-200">Supabase Dashboard &gt; Authentication &gt; Providers &gt; Google</strong>: confirm that the <code className="font-mono text-[10px]">Client ID</code> and <code className="font-mono text-[10px]">Client Secret</code> match without trailing spaces.
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-1 border-t border-red-200 dark:border-red-800/40">
+            <button
+              type="button"
+              onClick={onLoginSuccess}
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
+            >
+              Enter Console in Demo Mode →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Google Sign In option */}
       <div className="mb-5">
         <GoogleSignInButton onGoogleSuccess={onLoginSuccess} />
@@ -96,25 +185,25 @@ export const SignInPage: React.FC<SignInPageProps> = ({
         </span>
       </div>
 
-      {/* Backend connection notice if attempted */}
+      {/* Backend feedback notice if attempted */}
       {backendFeedback && (
-        <div className="mb-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs flex flex-col gap-2">
+        <div className="mb-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700/60 text-red-900 dark:text-red-200 text-xs flex flex-col gap-2">
           <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 mt-0.5">
-              cloud_off
+            <span className="material-symbols-outlined text-[18px] text-red-600 dark:text-red-400 mt-0.5">
+              error
             </span>
             <div className="flex flex-col">
-              <span className="font-semibold text-slate-900 dark:text-white">Live Backend Required</span>
+              <span className="font-semibold text-slate-900 dark:text-white">Authentication Error</span>
               <span className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed mt-0.5">
                 {backendFeedback}
               </span>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-200 dark:border-amber-800/40">
+          <div className="flex items-center justify-end gap-2 pt-1 border-t border-red-200 dark:border-red-800/40">
             <button
               type="button"
               onClick={onLoginSuccess}
-              className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white underline cursor-pointer"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
             >
               Enter Console in Demo Mode →
             </button>

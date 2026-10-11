@@ -119,6 +119,7 @@ export interface TestRun {
   parent_run_id: string | null;
   created_at: string;
   duration?: string;
+  duration_ms?: number;
   run_number?: number;
 }
 

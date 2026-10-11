@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { AuthUser } from '../services/authService';
 
 export type AppTab = 'dashboard' | 'projects' | 'test-runs' | 'healing-queue' | 'settings';
 
@@ -11,6 +12,7 @@ interface SidebarProps {
   onOpenDocs: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  currentUser?: AuthUser | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -22,9 +24,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenDocs,
   mobileOpen,
   onCloseMobile,
+  currentUser,
 }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const displayName = currentUser?.name || 'Elena Rostova';
+  const displayEmail = currentUser?.email || 'elena.rostova@acme.corp';
+  const displayRole = currentUser?.role || 'QA Lead';
+  const displayAvatar =
+    currentUser?.avatarUrl ||
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuClQsIR7bEguSlug4BrrJjeX5oQCIkUgXw_QZkIaWafVR1CGk6q8ZgITi3oKWNNaYVWPeU4Q94KOiGdViwUCG_PpARSOd6q6rpHK9Qu5Sjq7qmiFEmKMMb8ghwMtNxMnE2VEpID-Pishmdf2nJulyN1EIFnEWcrRSWSNTqTwShRx5qr_0hlU65cH-F5LSFOFJYn3Kpj7A4o56vhUs4gmUpGfVsBz8lmG3R6yd5SW5foGob6h0JXvfXd';
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -213,18 +223,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="relative flex-shrink-0">
                   <img
-                    alt="Profile"
+                    alt={displayName}
                     className="w-8 h-8 rounded-full object-cover ring-1 ring-border-subtle"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuClQsIR7bEguSlug4BrrJjeX5oQCIkUgXw_QZkIaWafVR1CGk6q8ZgITi3oKWNNaYVWPeU4Q94KOiGdViwUCG_PpARSOd6q6rpHK9Qu5Sjq7qmiFEmKMMb8ghwMtNxMnE2VEpID-Pishmdf2nJulyN1EIFnEWcrRSWSNTqTwShRx5qr_0hlU65cH-F5LSFOFJYn3Kpj7A4o56vhUs4gmUpGfVsBz8lmG3R6yd5SW5foGob6h0JXvfXd"
+                    src={displayAvatar}
                   />
                   <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-status-success ring-1 ring-surface-canvas"></span>
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="font-label-md text-label-md text-text-primary truncate font-medium leading-none">
-                    Elena Rostova
+                    {displayName}
                   </span>
                   <span className="font-label-sm text-label-sm text-text-muted truncate mt-1 leading-none">
-                    QA Lead
+                    {displayRole}
                   </span>
                 </div>
               </div>
@@ -244,8 +254,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {userMenuOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-surface-canvas border border-border-strong rounded-xl shadow-xl z-50 p-1.5 flex flex-col gap-0.5 animate-fadeIn">
                 <div className="px-2.5 py-1.5 border-b border-border-subtle mb-1">
-                  <p className="text-xs font-semibold text-text-primary">Elena Rostova</p>
-                  <p className="text-[11px] text-text-muted truncate font-mono">elena.rostova@acme.corp</p>
+                  <p className="text-xs font-semibold text-text-primary">{displayName}</p>
+                  <p className="text-[11px] text-text-muted truncate font-mono">{displayEmail}</p>
                 </div>
 
                 <button

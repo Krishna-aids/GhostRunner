@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TestDefinition, TestRun, RunStatus } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import { RunStatusBadge } from '../shared/RunStatusBadge';
 import { FailureCategoryChip } from '../shared/FailureCategoryChip';
 import { RunTimeline } from '../shared/RunTimeline';
@@ -16,10 +17,12 @@ const TERMINAL_STATUSES: RunStatus[] = ['passed', 'failed', 'needs_review', 'env
 
 export const TestDetailPage: React.FC<TestDetailPageProps> = ({
   testId,
-  ownerId = 'user-demo-1406',
+  ownerId: ownerIdProp,
   onBackToProject,
   onOpenRun,
 }) => {
+  const { user } = useAuth();
+  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
   const [test, setTest] = useState<TestDefinition | null>(null);
   const [runs, setRuns] = useState<TestRun[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

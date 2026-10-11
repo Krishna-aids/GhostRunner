@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TestRun, EvidenceArtifact, RepairProposal, ActionPlan } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import { RunStatusBadge } from '../shared/RunStatusBadge';
 import { FailureCategoryChip } from '../shared/FailureCategoryChip';
 import { RepairProposalCard } from '../shared/RepairProposalCard';
@@ -15,10 +16,12 @@ interface RunDetailPageProps {
 
 export const RunDetailPage: React.FC<RunDetailPageProps> = ({
   runId,
-  ownerId = 'user-demo-1406',
+  ownerId: ownerIdProp,
   onBackToTest,
   onRerunSuccess,
 }) => {
+  const { user } = useAuth();
+  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
   const [run, setRun] = useState<TestRun | null>(null);
   const [artifacts, setArtifacts] = useState<EvidenceArtifact[]>([]);
   const [proposals, setProposals] = useState<RepairProposal[]>([]);

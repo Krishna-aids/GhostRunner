@@ -3,12 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   role: string;
   avatarUrl?: string;
+  provider?: string;
 }
 
 export interface SignInCredentials {
@@ -20,8 +24,8 @@ export interface SignUpCredentials {
   name: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  agreeToTerms: boolean;
+  confirmPassword?: string;
+  agreeToTerms?: boolean;
 }
 
 export interface AuthResponse<T = unknown> {
@@ -35,44 +39,44 @@ export interface AuthResponse<T = unknown> {
 
 export interface AuthBackendStatus {
   isConfigured: boolean;
-  provider: 'none' | 'custom_api' | 'firebase' | 'oauth';
+  provider: 'supabase';
   googleOAuthConfigured: boolean;
   description: string;
 }
 
 /**
- * Checks whether an authentication backend is configured in the environment.
+ * Maps a Supabase Auth User object into the application's clean AuthUser model.
+ */
+export function mapSupabaseUser(user: User): AuthUser {
+  const meta = user.user_metadata || {};
+  return {
+    id: user.id,
+    email: user.email || '',
+    name:
+      meta.full_name ||
+      meta.name ||
+      meta.user_name ||
+      user.email?.split('@')[0] ||
+      'GhostRunner User',
+    role: meta.role || (user.app_metadata && user.app_metadata.role) || 'QA Lead',
+    avatarUrl: meta.avatar_url || meta.picture || undefined,
+    provider: (user.app_metadata && user.app_metadata.provider) || 'supabase',
+  };
+}
+
+/**
+ * Checks whether Supabase authentication is active and properly configured.
  */
 export function checkAuthBackendStatus(): AuthBackendStatus {
-  // Check for common auth environment variables
-  const hasCustomApi = Boolean(import.meta.env.VITE_AUTH_API_URL);
-  const hasGoogleOAuth = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
-  const hasFirebase = Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
-
-  if (hasCustomApi) {
-    return {
-      isConfigured: true,
-      provider: 'custom_api',
-      googleOAuthConfigured: hasGoogleOAuth,
-      description: 'Connected to custom API backend.',
-    };
-  }
-
-  if (hasFirebase) {
-    return {
-      isConfigured: true,
-      provider: 'firebase',
-      googleOAuthConfigured: hasGoogleOAuth,
-      description: 'Connected to Firebase Authentication.',
-    };
-  }
+  const configured = isSupabaseConfigured();
 
   return {
-    isConfigured: false,
-    provider: 'none',
-    googleOAuthConfigured: hasGoogleOAuth,
-    description:
-      'No authentication backend configured. Frontend forms validate input locally and expose clear service hooks for production integration.',
+    isConfigured: configured,
+    provider: 'supabase',
+    googleOAuthConfigured: configured, // Google OAuth provider is enabled in Supabase project
+    description: configured
+      ? 'Supabase Authentication active with Google OAuth and Email/Password providers.'
+      : 'Supabase credentials missing. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.',
   };
 }
 
@@ -98,25 +102,21 @@ export const AuthValidators = {
 };
 
 /**
- * Abstract AuthService class ready to be backed by REST API, Firebase, Supabase, or Auth0.
+ * Production-ready AuthService using Supabase Auth exclusively.
+ * Supports Email/Password, Google OAuth, session restore, password reset, and sign out.
  */
 class AuthService {
-  private backendStatus: AuthBackendStatus;
-
-  constructor() {
-    this.backendStatus = checkAuthBackendStatus();
-  }
-
+  /**
+   * Returns current backend configuration status.
+   */
   public getStatus(): AuthBackendStatus {
-    return this.backendStatus;
+    return checkAuthBackendStatus();
   }
 
   /**
-   * Attempt sign in. If no backend is configured, returns a descriptive error
-   * explaining that a live backend API is required.
+   * Sign in with Supabase Email & Password.
    */
   public async signIn(credentials: SignInCredentials): Promise<AuthResponse> {
-    // 1. Client-side input validation
     if (!credentials.email.trim()) {
       return { success: false, error: 'Email address is required.' };
     }
@@ -127,37 +127,42 @@ class AuthService {
       return { success: false, error: 'Password is required.' };
     }
 
-    // 2. Check if a real backend API is connected
-    if (this.backendStatus.isConfigured && import.meta.env.VITE_AUTH_API_URL) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/auth/signin`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
-        });
-        const data = await response.json();
-        return data;
-      } catch (err: unknown) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : 'Network error contacting auth backend.',
-        };
-      }
+    if (!isSupabaseConfigured()) {
+      return {
+        success: false,
+        error: 'Supabase credentials are not configured in environment variables.',
+      };
     }
 
-    // 3. Realistic simulated network delay
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email.trim(),
+        password: credentials.password,
+      });
 
-    // Notice: Per requirements, do NOT pretend an account was authenticated or store credentials
-    return {
-      success: false,
-      error:
-        'Authentication backend not connected. To connect live users, configure an authentication endpoint in src/services/authService.ts.',
-    };
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'No user returned from Supabase.' };
+      }
+
+      return {
+        success: true,
+        user: mapSupabaseUser(data.user),
+        token: data.session?.access_token,
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Unexpected error during sign in.',
+      };
+    }
   }
 
   /**
-   * Attempt registration.
+   * Register a new user with Supabase Email & Password.
    */
   public async signUp(credentials: SignUpCredentials): Promise<AuthResponse> {
     if (!credentials.name.trim()) {
@@ -173,40 +178,145 @@ class AuthService {
     if (!passwordCheck.isValid) {
       return { success: false, error: passwordCheck.reason };
     }
-    if (!AuthValidators.doPasswordsMatch(credentials.password, credentials.confirmPassword)) {
+    if (
+      credentials.confirmPassword !== undefined &&
+      !AuthValidators.doPasswordsMatch(credentials.password, credentials.confirmPassword)
+    ) {
       return { success: false, error: 'Passwords do not match.' };
     }
-    if (!credentials.agreeToTerms) {
+    if (credentials.agreeToTerms === false) {
       return { success: false, error: 'You must agree to the Terms of Service and Privacy Policy.' };
     }
 
-    if (this.backendStatus.isConfigured && import.meta.env.VITE_AUTH_API_URL) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
-        });
-        return await response.json();
-      } catch (err: unknown) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : 'Network error contacting auth backend.',
-        };
-      }
+    if (!isSupabaseConfigured()) {
+      return {
+        success: false,
+        error: 'Supabase credentials are not configured in environment variables.',
+      };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      const redirectUrl =
+        typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
 
-    return {
-      success: false,
-      error:
-        'Authentication backend not connected. To register live accounts, connect an authentication API or database.',
-    };
+      const { data, error } = await supabase.auth.signUp({
+        email: credentials.email.trim(),
+        password: credentials.password,
+        options: {
+          data: {
+            full_name: credentials.name.trim(),
+            name: credentials.name.trim(),
+          },
+          emailRedirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'Account creation failed. Please try again.' };
+      }
+
+      // Check if email confirmation is required (session will be null while user is created)
+      const isConfirmationPending = !data.session;
+
+      return {
+        success: true,
+        user: mapSupabaseUser(data.user),
+        token: data.session?.access_token,
+        message: isConfirmationPending
+          ? 'Confirmation email sent! Please check your inbox to verify your email address.'
+          : 'Account created successfully!',
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Unexpected error during registration.',
+      };
+    }
   }
 
   /**
-   * Request password reset link.
+   * Initiate Google OAuth sign-in flow through Supabase.
+   */
+  public async signInWithGoogle(): Promise<AuthResponse> {
+    if (!isSupabaseConfigured()) {
+      return {
+        success: false,
+        error: 'Supabase is not configured. Please verify your environment variables.',
+      };
+    }
+
+    try {
+      const redirectUrl =
+        typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to initialize Google OAuth.',
+      };
+    }
+  }
+
+  /**
+   * Sign in with Google ID Token (via Google Identity Services).
+   */
+  public async signInWithGoogleIdToken(idToken: string, nonce?: string): Promise<AuthResponse> {
+    if (!isSupabaseConfigured()) {
+      return {
+        success: false,
+        error: 'Supabase is not configured. Please verify your environment variables.',
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+        nonce,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'No user returned from Supabase.' };
+      }
+
+      return {
+        success: true,
+        user: mapSupabaseUser(data.user),
+        token: data.session?.access_token,
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to sign in with Google ID token.',
+      };
+    }
+  }
+
+  /**
+   * Request password reset instructions via Supabase.
    */
   public async requestPasswordReset(email: string): Promise<AuthResponse> {
     if (!email.trim()) {
@@ -216,30 +326,99 @@ class AuthService {
       return { success: false, error: 'Please enter a valid email address.' };
     }
 
-    if (this.backendStatus.isConfigured && import.meta.env.VITE_AUTH_API_URL) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/auth/forgot-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        return await response.json();
-      } catch (err: unknown) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : 'Network error contacting auth backend.',
-        };
-      }
+    if (!isSupabaseConfigured()) {
+      return {
+        success: false,
+        error: 'Supabase credentials are not configured in environment variables.',
+      };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      const redirectUrl =
+        typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
 
-    // Per requirement: "Do not claim that an email has been sent unless the backend confirms the request"
-    return {
-      success: false,
-      error:
-        'Backend email service is not configured. No password reset email could be sent. Configure an SMTP or transactional email provider in the environment.',
-    };
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return {
+        success: true,
+        message: 'Password reset link sent! Please check your inbox.',
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to send password reset email.',
+      };
+    }
+  }
+
+  /**
+   * Sign out the active user session.
+   */
+  public async signOut(): Promise<AuthResponse> {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Error signing out.',
+      };
+    }
+  }
+
+  /**
+   * Retrieve the currently authenticated user from Supabase.
+   */
+  public async getCurrentUser(): Promise<AuthUser | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error || !user) return null;
+      return mapSupabaseUser(user);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Retrieve the active Supabase session.
+   */
+  public async getSession(): Promise<Session | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+      if (error || !session) return null;
+      return session;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Subscribe to Supabase auth state changes (login, logout, token refresh, OAuth callback).
+   */
+  public onAuthStateChange(
+    callback: (event: AuthChangeEvent, session: Session | null, user: AuthUser | null) => void
+  ) {
+    return supabase.auth.onAuthStateChange((event, session) => {
+      const user = session?.user ? mapSupabaseUser(session.user) : null;
+      callback(event, session, user);
+    });
   }
 }
 

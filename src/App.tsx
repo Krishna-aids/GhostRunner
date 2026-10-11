@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar, AppTab } from './components/Sidebar';
 import { Header } from './components/Header';
 import { TelemetryCards } from './components/TelemetryCards';
@@ -23,6 +23,9 @@ import { SignUpPage } from './components/auth/SignUpPage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { MascotWidget } from './components/MascotWidget';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { isSupabaseConfigured } from './services/supabaseClient';
+import * as db from './services/supabaseDataService';
 import { INITIAL_METRICS, INITIAL_TEST_RUNS, INITIAL_HEALING_QUEUE } from './data/mockData';
 import { TestRun, HealingQueueItem, MetricSummary } from './types';
 
@@ -102,6 +105,7 @@ function parseBrowserRoute(): RouteState {
 
 function AppContent() {
   const initialParsed = parseBrowserRoute();
+  const { user, signOut: authSignOut, enterDemoMode } = useAuth();
 
   const [route, setRoute] = useState<AppRoute>(initialParsed.route);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
@@ -113,6 +117,18 @@ function AppContent() {
   const [selectedRunId, setSelectedRunId] = useState<string>(
     initialParsed.runId || 'run-demo-2'
   );
+
+  // If user is authenticated and navigating to login/signup, redirect to projects automatically
+  useEffect(() => {
+    if (user && (route === 'signin' || route === 'signup')) {
+      navigateTo('projects');
+    }
+  }, [user, route]);
+
+  const handleSignOut = async () => {
+    await authSignOut();
+    navigateTo('signin');
+  };
 
   const getInitialTab = (): AppTab => {
     if (typeof window !== 'undefined') {
@@ -138,6 +154,74 @@ function AppContent() {
   const [selectedSuite, setSelectedSuite] = useState<string>('checkout-suite');
   const [selectedEnv, setSelectedEnv] = useState<string>('Staging v2.18');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+
+  // ── Load real Supabase data when authenticated ────────────────────────────
+  const loadSupabaseData = useCallback(async () => {
+    if (!user || !isSupabaseConfigured()) return;
+    try {
+      // Fetch live test runs for the authenticated user
+      const runs = await db.fetchAllRunsForOwner(user.id, 50);
+      if (runs.length > 0) {
+        // Map domain TestRun to the legacy UI TestRun shape so existing components still work
+        const mappedRuns: TestRun[] = runs.map((r) => ({
+          id: r.id,
+          specFile: r.test_definition_id || 'unknown.spec.ts',
+          description: r.summary || 'Test execution',
+          branch: r.environment_ref || 'main',
+          timeAgo: r.started_at
+            ? (() => {
+                const diff = Date.now() - new Date(r.started_at).getTime();
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'Just now';
+                if (mins < 60) return `${mins}m ago`;
+                const hrs = Math.floor(mins / 60);
+                if (hrs < 24) return `${hrs}h ago`;
+                return `${Math.floor(hrs / 24)}d ago`;
+              })()
+            : 'Unknown',
+          duration: r.duration || (r.duration_ms ? `${Math.round(r.duration_ms / 1000)}s` : '—'),
+          status: (r.status as 'passed' | 'failed' | 'healed_passed' | 'running') ?? 'passed',
+          statusSubtitle:
+            r.status === 'passed'
+              ? 'Clean run (0 interventions)'
+              : r.status === 'failed'
+              ? `${r.classification || 'Test failed'} (${r.confidence ?? 0}% conf)`
+              : r.summary || r.status,
+          healedCount: r.status === 'repair_proposed' || r.status === 'rerunning' ? 1 : 0,
+          steps: [],
+          consoleLogs: r.summary ? [r.summary] : [],
+        }));
+        setTestRuns(mappedRuns);
+
+        // Compute live metrics from runs
+        const total = runs.length;
+        const passed = runs.filter((r) => r.status === 'passed').length;
+        const healed = runs.filter((r) => r.status === 'repair_proposed' || r.status === 'rerunning').length;
+        const failed = runs.filter((r) => r.status === 'failed').length;
+        const confVals = runs.map((r) => r.confidence).filter((c) => c != null) as number[];
+        const avgConf = confVals.length
+          ? Math.round(confVals.reduce((a, b) => a + b, 0) / confVals.length)
+          : 0;
+        const successRate = total > 0 ? Math.round(((passed + healed) / total) * 1000) / 10 : INITIAL_METRICS.successRate;
+        const rawRate = total > 0 ? Math.round((passed / total) * 1000) / 10 : 0;
+        setMetrics({
+          successRate,
+          healsBoost: Math.max(0, successRate - rawRate),
+          selfHealedCount: healed,
+          avgConfidence: avgConf || INITIAL_METRICS.avgConfidence,
+          totalDuration: INITIAL_METRICS.totalDuration,
+          threads: INITIAL_METRICS.threads,
+          failingCount: failed,
+        });
+      }
+    } catch (err) {
+      console.warn('[GhostRunner] Failed to load Supabase dashboard data, using demo data.', err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSupabaseData();
+  }, [loadSupabaseData]);
 
   // Sync route with browser popstate
   useEffect(() => {
@@ -276,7 +360,10 @@ function AppContent() {
           onNavigateSignUp={() => navigateTo('signup')}
           onNavigateForgotPassword={() => navigateTo('forgot-password')}
           onNavigateHome={() => navigateTo('landing')}
-          onLoginSuccess={() => navigateTo('projects')}
+          onLoginSuccess={() => {
+            if (!user) enterDemoMode();
+            navigateTo('projects');
+          }}
         />
         <MascotWidget onInteract={() => {}} />
       </>
@@ -290,7 +377,10 @@ function AppContent() {
         <SignUpPage
           onNavigateSignIn={() => navigateTo('signin')}
           onNavigateHome={() => navigateTo('landing')}
-          onSignUpSuccess={() => navigateTo('projects')}
+          onSignUpSuccess={() => {
+            if (!user) enterDemoMode();
+            navigateTo('projects');
+          }}
         />
         <MascotWidget onInteract={() => {}} />
       </>
@@ -358,11 +448,12 @@ function AppContent() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onGoToLanding={() => navigateTo('landing')}
-        onSignOut={() => navigateTo('signin')}
+        onSignOut={handleSignOut}
         healingCount={pendingHealingCount}
         onOpenDocs={() => setDocsOpen(true)}
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
+        currentUser={user}
       />
 
       {/* Main Container shifted right by 256px on desktop */}
@@ -377,7 +468,8 @@ function AppContent() {
           engineActive={engineActive}
           onToggleEngine={() => setEngineActive(!engineActive)}
           onOpenDocs={() => setDocsOpen(true)}
-          onSignOut={() => navigateTo('signin')}
+          onSignOut={handleSignOut}
+          currentUser={user}
         />
 
         {/* Content Area */}
@@ -387,6 +479,7 @@ function AppContent() {
               {/* SPEC ROUTE 2: /projects (Projects List + Create Project) */}
               {route === 'projects' && (
                 <ProjectsPage
+                  ownerId={user?.id}
                   onOpenProject={(pId) => navigateTo('project-detail', { id: pId })}
                   onSwitchToImportView={() => {
                     setCurrentTab('projects');
@@ -399,6 +492,7 @@ function AppContent() {
               {route === 'project-detail' && (
                 <ProjectDetailPage
                   projectId={selectedProjectId}
+                  ownerId={user?.id}
                   onBackToProjects={() => navigateTo('projects')}
                   onOpenTest={(tId) => navigateTo('test-detail', { id: tId })}
                 />
@@ -408,6 +502,7 @@ function AppContent() {
               {route === 'test-detail' && (
                 <TestDetailPage
                   testId={selectedTestId}
+                  ownerId={user?.id}
                   onBackToProject={(pId) => navigateTo('project-detail', { id: pId })}
                   onOpenRun={(rId) => navigateTo('run-detail', { id: rId })}
                 />
@@ -417,6 +512,7 @@ function AppContent() {
               {route === 'run-detail' && (
                 <RunDetailPage
                   runId={selectedRunId}
+                  ownerId={user?.id}
                   onBackToTest={(tId) => navigateTo('test-detail', { id: tId })}
                   onRerunSuccess={() => {}}
                 />
@@ -557,7 +653,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

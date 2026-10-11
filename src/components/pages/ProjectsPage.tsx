@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Project } from '../../types/domain';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface ProjectsPageProps {
   ownerId?: string;
@@ -9,10 +10,12 @@ interface ProjectsPageProps {
 }
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({
-  ownerId = 'user-demo-1406',
+  ownerId: ownerIdProp,
   onOpenProject,
   onSwitchToImportView,
 }) => {
+  const { user } = useAuth();
+  const ownerId = ownerIdProp || user?.id || 'user-demo-1406';
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

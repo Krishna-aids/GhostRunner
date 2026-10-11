@@ -87,9 +87,12 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBackendFeedback(null);
+    setSuccessNotice(null);
 
     if (!validate() || isSubmitting) return;
 
@@ -104,11 +107,18 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
         agreeToTerms,
       });
 
-      if (response.success && response.user) {
-        onSignUpSuccess();
+      if (response.success) {
+        if (response.token) {
+          onSignUpSuccess();
+        } else {
+          setSuccessNotice(
+            response.message ||
+              'Account created! A confirmation email has been dispatched. Please check your inbox to verify your email.'
+          );
+        }
       } else {
         setBackendFeedback(
-          response.error || 'Registration service error. Please check your configuration.'
+          response.error || 'Registration failed. Please check your details.'
         );
       }
     } catch (err: unknown) {
@@ -148,25 +158,49 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
         </span>
       </div>
 
-      {/* Backend connection notice if attempted */}
-      {backendFeedback && (
-        <div className="mb-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs flex flex-col gap-2">
+      {/* Email confirmation notice */}
+      {successNotice && (
+        <div className="mb-4 p-4 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-700/60 text-teal-900 dark:text-teal-200 text-xs flex flex-col gap-2.5 animate-fadeIn">
           <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 mt-0.5">
-              cloud_off
+            <span className="material-symbols-outlined text-[20px] text-teal-600 dark:text-teal-400">
+              mark_email_read
             </span>
             <div className="flex flex-col">
-              <span className="font-semibold text-slate-900 dark:text-white">Live Backend Required</span>
+              <span className="font-semibold text-slate-900 dark:text-white text-sm">Account Created</span>
+              <span className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed mt-0.5">
+                {successNotice}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onNavigateSignIn}
+            className="w-full mt-1 py-2 px-3 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium text-xs transition-colors cursor-pointer text-center"
+          >
+            Go to Sign In →
+          </button>
+        </div>
+      )}
+
+      {/* Backend error notice */}
+      {backendFeedback && (
+        <div className="mb-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700/60 text-red-900 dark:text-red-200 text-xs flex flex-col gap-2 animate-fadeIn">
+          <div className="flex items-start gap-2">
+            <span className="material-symbols-outlined text-[18px] text-red-600 dark:text-red-400 mt-0.5">
+              error
+            </span>
+            <div className="flex flex-col">
+              <span className="font-semibold text-slate-900 dark:text-white">Registration Notice</span>
               <span className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed mt-0.5">
                 {backendFeedback}
               </span>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-200 dark:border-amber-800/40">
+          <div className="flex items-center justify-end gap-2 pt-1 border-t border-red-200 dark:border-red-800/40">
             <button
               type="button"
               onClick={onSignUpSuccess}
-              className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white underline cursor-pointer"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
             >
               Enter Console in Demo Mode →
             </button>

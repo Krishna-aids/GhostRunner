@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
+import { AuthUser } from '../services/authService';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
@@ -12,6 +13,7 @@ interface HeaderProps {
   onToggleEngine: () => void;
   onOpenDocs: () => void;
   onSignOut?: () => void;
+  currentUser?: AuthUser | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,7 +26,14 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleEngine,
   onOpenDocs,
   onSignOut,
+  currentUser,
 }) => {
+  const displayName = currentUser?.name || 'Elena Rostova';
+  const displayEmail = currentUser?.email || 'elena.rostova@acme.corp';
+  const displayRole = currentUser?.role || 'QA Lead';
+  const displayAvatar =
+    currentUser?.avatarUrl ||
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuClQsIR7bEguSlug4BrrJjeX5oQCIkUgXw_QZkIaWafVR1CGk6q8ZgITi3oKWNNaYVWPeU4Q94KOiGdViwUCG_PpARSOd6q6rpHK9Qu5Sjq7qmiFEmKMMb8ghwMtNxMnE2VEpID-Pishmdf2nJulyN1EIFnEWcrRSWSNTqTwShRx5qr_0hlU65cH-F5LSFOFJYn3Kpj7A4o56vhUs4gmUpGfVsBz8lmG3R6yd5SW5foGob6h0JXvfXd';
   const [suiteMenuOpen, setSuiteMenuOpen] = useState(false);
   const [envMenuOpen, setEnvMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -296,22 +305,22 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
               className="flex items-center gap-1.5 focus:outline-none"
-              title="Elena Rostova (QA Lead)"
+              title={`${displayName} (${displayRole})`}
             >
               <img
-                alt="Elena Rostova Profile"
+                alt={displayName}
                 className="w-8 h-8 rounded-full object-cover ring-1 ring-border-subtle hover:ring-primary cursor-pointer transition-all"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuClQsIR7bEguSlug4BrrJjeX5oQCIkUgXw_QZkIaWafVR1CGk6q8ZgITi3oKWNNaYVWPeU4Q94KOiGdViwUCG_PpARSOd6q6rpHK9Qu5Sjq7qmiFEmKMMb8ghwMtNxMnE2VEpID-Pishmdf2nJulyN1EIFnEWcrRSWSNTqTwShRx5qr_0hlU65cH-F5LSFOFJYn3Kpj7A4o56vhUs4gmUpGfVsBz8lmG3R6yd5SW5foGob6h0JXvfXd"
+                src={displayAvatar}
               />
             </button>
 
             {userDropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-surface-canvas border border-border-strong rounded-xl shadow-xl z-50 p-1.5 flex flex-col gap-0.5 animate-fadeIn">
                 <div className="px-3 py-2 border-b border-border-subtle mb-1">
-                  <p className="text-xs font-semibold text-text-primary">Elena Rostova</p>
-                  <p className="text-[11px] text-text-muted truncate font-mono">elena.rostova@acme.corp</p>
+                  <p className="text-xs font-semibold text-text-primary">{displayName}</p>
+                  <p className="text-[11px] text-text-muted truncate font-mono">{displayEmail}</p>
                   <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider text-status-success bg-status-success-subtle px-1.5 py-0.5 rounded border border-status-success/30">
-                    QA Lead • Staging Access
+                    {displayRole} • {currentUser?.provider === 'google' ? 'Google SSO' : 'Supabase Auth'}
                   </span>
                 </div>
 

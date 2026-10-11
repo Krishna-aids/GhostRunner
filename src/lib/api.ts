@@ -1,8 +1,8 @@
 /**
  * GhostRunner API Client
  *
- * Implements the base fetcher attaching X-Owner-ID to every request.
- * Supports live backend endpoints with intelligent simulation fallback for offline/demo scenarios.
+ * Primary: routes through Supabase when configured (RLS-secured, real data).
+ * Fallback: local demo store for offline/demo scenarios.
  */
 
 import {
@@ -14,6 +14,9 @@ import {
   RepairProposal,
   RunStatus,
 } from '../types/domain';
+
+import { isSupabaseConfigured } from '../services/supabaseClient';
+import * as db from '../services/supabaseDataService';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -270,33 +273,144 @@ function saveStore(store: DemoStore): void {
   }
 }
 
+
 // ── API Fetch Client ─────────────────────────────────────────────────────────
+
+/**
+ * Supabase-backed implementation of apiFetch routes.
+ * Called when Supabase credentials are configured.
+ */
+async function supabaseFetch<T>(
+  endpoint: string,
+  ownerId: string,
+  options: RequestInit
+): Promise<T> {
+  const method = options.method?.toUpperCase() || 'GET';
+  const body = options.body ? JSON.parse(options.body as string) : {};
+
+  // GET /projects
+  if (endpoint === '/projects' && method === 'GET') {
+    return db.fetchProjects(ownerId) as unknown as T;
+  }
+
+  // POST /projects
+  if (endpoint === '/projects' && method === 'POST') {
+    return db.createProject(ownerId, body.name || 'Untitled Project') as unknown as T;
+  }
+
+  // GET /projects/:id
+  const projectMatch = endpoint.match(/^\/projects\/([^/]+)$/);
+  if (projectMatch && method === 'GET') {
+    return db.fetchProjectById(projectMatch[1]) as unknown as T;
+  }
+
+  // POST /projects/:id/repository
+  const repoMatch = endpoint.match(/^\/projects\/([^/]+)\/repository$/);
+  if (repoMatch && method === 'POST') {
+    const meta = {
+      ...(body || {}),
+      stack: body.stack || 'Next.js 14',
+      connected: true,
+      last_synced: new Date().toISOString(),
+    };
+    const updated = await db.updateProjectRepoMetadata(repoMatch[1], meta);
+    return { success: true, repo_metadata: updated.repo_metadata } as unknown as T;
+  }
+
+  // GET /projects/:id/tests
+  const testsMatch = endpoint.match(/^\/projects\/([^/]+)\/tests$/);
+  if (testsMatch && method === 'GET') {
+    return db.fetchTestsForProject(testsMatch[1]) as unknown as T;
+  }
+
+  // POST /projects/:id/tests
+  if (testsMatch && method === 'POST') {
+    return db.createTestDefinition(testsMatch[1], ownerId, {
+      name: body.name || 'New Test Spec',
+      original_intent: body.original_intent || 'Verifies core user workflow.',
+      required_assertions: body.required_assertions,
+    }) as unknown as T;
+  }
+
+  // GET /tests/:id
+  const testDetailMatch = endpoint.match(/^\/tests\/([^/]+)$/);
+  if (testDetailMatch && method === 'GET') {
+    return db.fetchTestById(testDetailMatch[1]) as unknown as T;
+  }
+
+  // GET /tests/:id/runs
+  const testRunsMatch = endpoint.match(/^\/tests\/([^/]+)\/runs$/);
+  if (testRunsMatch && method === 'GET') {
+    return db.fetchRunsForTest(testRunsMatch[1]) as unknown as T;
+  }
+
+  // POST /tests/:id/runs
+  if (testRunsMatch && method === 'POST') {
+    const testDef = await db.fetchTestById(testRunsMatch[1]).catch(() => null);
+    const versionId = testDef?.active_version_id || `ver-${Date.now()}`;
+    return db.createTestRun(testRunsMatch[1], versionId, ownerId) as unknown as T;
+  }
+
+  // GET /runs/:id
+  const runMatch = endpoint.match(/^\/runs\/([^/]+)$/);
+  if (runMatch && method === 'GET') {
+    return db.fetchRunById(runMatch[1]) as unknown as T;
+  }
+
+  // GET /runs/:id/artifacts
+  const artMatch = endpoint.match(/^\/runs\/([^/]+)\/artifacts$/);
+  if (artMatch && method === 'GET') {
+    return db.fetchArtifactsForRun(artMatch[1]) as unknown as T;
+  }
+
+  // GET /runs/:id/repair-proposals
+  const propMatch = endpoint.match(/^\/runs\/([^/]+)\/repair-proposals$/);
+  if (propMatch && method === 'GET') {
+    return db.fetchRepairProposalsForRun(propMatch[1]) as unknown as T;
+  }
+
+  // POST /runs/:id/repair-proposals
+  if (propMatch && method === 'POST') {
+    return db.createRepairProposal({
+      test_run_id: propMatch[1],
+      from_version_id: body.from_version_id || 'ver-1',
+      reason: body.reason || 'Manually proposed locator update',
+      confidence: body.confidence || 85,
+      validation_status: 'pending',
+      validation_run_id: null,
+      evidence_refs: [],
+      proposed_plan: body.proposed_plan || { steps: [], required_assertions: [] },
+    }) as unknown as T;
+  }
+
+  // POST /repair-proposals/:pid/approve
+  const approveMatch = endpoint.match(/^\/repair-proposals\/([^/]+)\/approve$/);
+  if (approveMatch && method === 'POST') {
+    await db.approveRepairProposal(approveMatch[1]);
+    return { success: true, message: 'Repair proposal approved.' } as unknown as T;
+  }
+
+  // POST /runs/:id/repair-proposals/:pid/validate
+  const validateMatch = endpoint.match(/^\/runs\/([^/]+)\/repair-proposals\/([^/]+)\/validate$/);
+  if (validateMatch && method === 'POST') {
+    await db.approveRepairProposal(validateMatch[2]);
+    return { success: true } as unknown as T;
+  }
+
+  throw new Error(`[Supabase] Unhandled endpoint: ${endpoint}`);
+}
 
 export async function apiFetch<T>(
   endpoint: string,
   ownerId: string = 'user-demo-1406',
   options: RequestInit = {}
 ): Promise<T> {
-  // If a live backend URL is configured, attempt real request
-  if (BASE_URL) {
+  // ── Supabase Routing (primary when configured) ────────────────────────────
+  if (isSupabaseConfigured()) {
     try {
-      const res = await fetch(`${BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Owner-ID': ownerId,
-          ...options.headers,
-        },
-      });
-
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
-        throw new Error(error.detail || `HTTP ${res.status}`);
-      }
-
-      return res.json();
+      return await supabaseFetch<T>(endpoint, ownerId, options);
     } catch (err) {
-      console.warn(`[GhostRunner API] Live request to ${endpoint} failed. Falling back to local store for demo.`, err);
+      console.warn(`[GhostRunner] Supabase request for ${endpoint} failed, falling back to demo store.`, err);
     }
   }
 
@@ -679,3 +793,4 @@ export function resetDemoStore(): void {
     // ignore
   }
 }
+

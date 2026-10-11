@@ -93,13 +93,13 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
         <>
           {/* Backend Status Notice */}
           {backendFeedback && (
-            <div className="mb-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs flex flex-col gap-2">
+            <div className="mb-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700/60 text-red-900 dark:text-red-200 text-xs flex flex-col gap-2">
               <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 mt-0.5">
-                  info
+                <span className="material-symbols-outlined text-[18px] text-red-600 dark:text-red-400 mt-0.5">
+                  error
                 </span>
                 <div className="flex flex-col">
-                  <span className="font-semibold text-slate-900 dark:text-white">Email Service Not Configured</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">Password Reset Notice</span>
                   <span className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed mt-0.5">
                     {backendFeedback}
                   </span>
