@@ -100,3 +100,23 @@ export interface GitHubRepoItem {
   detectedFrameworkHint: string;
 }
 
+export interface GitHubProject {
+  id: string;
+  name: string;
+  slug: string;
+  domain: string;
+  repo: string;
+  branch: string;
+  lastCommitMessage: string;
+  lastCommitDate: string;
+  iconType: string;
+  iconLetter: string;
+  selfHealingActive: boolean;
+  healingRate: string;
+  totalRuns: number;
+  pendingHeals: number;
+  lastRunStatus: 'healthy' | 'healing' | 'attention';
+  framework: string;
+  testRuns: TestRun[];
+}
+

@@ -170,10 +170,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 {healingCount > 0 && (
                   <span
-                    className={`font-code-sm text-code-sm px-1.5 py-0.5 rounded-full font-semibold border ${
+                    className={`text-xs px-2 py-0.5 rounded-full font-bold shadow-xs transition-all ${
                       currentTab === 'healing-queue'
-                        ? 'bg-white/20 text-white border-white/30'
-                        : 'bg-status-warning-subtle text-status-warning border-status-warning/30'
+                        ? 'bg-white text-primary font-extrabold'
+                        : 'bg-primary text-white font-bold'
                     }`}
                   >
                     {healingCount}
@@ -204,17 +204,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Footer info & user card */}
-        <div className="flex flex-col border-t border-border-subtle p-space-md gap-space-sm bg-surface-canvas">
-          <button
-            type="button"
-            onClick={onOpenDocs}
-            className="w-full flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-text-secondary hover:bg-surface-subtle hover:text-text-primary transition-colors text-left cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">help</span>
-            <span className="font-label-md text-label-md">Docs & Support</span>
-          </button>
-
-          <div className="relative pt-space-xs mt-space-xs border-t border-border-subtle px-space-xs" ref={userMenuRef}>
+        <div className="flex flex-col border-t border-border-subtle p-space-md bg-surface-canvas">
+          <div className="relative px-space-xs" ref={userMenuRef}>
             <div className="flex items-center justify-between">
               <div
                 className="flex items-center gap-space-sm min-w-0 cursor-pointer"

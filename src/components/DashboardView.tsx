@@ -14,31 +14,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-space-lg">
-      {/* Page Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-space-sm">
-            <h1 className="font-headline-lg text-headline-lg text-text-primary">
+      {/* Page Title & Actions Row: Perfectly aligned on same horizontal axis */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
               Automation Health Dashboard
             </h1>
-            <span className="inline-flex items-center px-space-sm py-0.5 rounded-full bg-status-success-subtle text-status-success border border-status-success/30 font-code-sm text-code-sm font-semibold">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-status-success-subtle text-status-success border border-status-success/30 text-xs font-semibold">
               Live Telemetry
             </span>
           </div>
-          <p className="font-body-md text-body-md text-text-secondary">
-            Continuous flakiness elimination, self-healing pipeline metrics, and locator degradation trends.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-space-sm">
           <button
             onClick={onOpenRuns}
-            className="inline-flex items-center gap-1.5 px-space-md py-1.5 rounded-xl bg-primary-container text-on-primary font-label-md text-label-md font-semibold hover:opacity-95 shadow-sm transition-all cursor-pointer"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 shadow-xs transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">play_arrow</span>
             <span>View All Runs</span>
           </button>
         </div>
+
+        <p className="font-body-md text-sm text-text-secondary max-w-3xl">
+          Continuous flakiness elimination, self-healing pipeline metrics, and locator degradation trends.
+        </p>
       </div>
 
       {/* Hero ROI Banner */}
@@ -59,7 +58,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
         <button
           onClick={onOpenHealingQueue}
-          className="px-space-md py-2 rounded-xl bg-surface-canvas border border-border-strong text-text-primary font-label-md text-label-md hover:bg-surface-subtle transition-colors shadow-xs cursor-pointer whitespace-nowrap"
+          className="px-4 py-2 rounded-xl bg-surface-canvas border border-border-strong text-text-primary text-sm font-semibold hover:bg-surface-subtle transition-colors shadow-xs cursor-pointer whitespace-nowrap"
         >
           Review 3 Open Heals ➔
         </button>
@@ -70,7 +69,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Pass Rate Contrast */}
         <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="font-label-sm text-text-muted uppercase tracking-wider">
+            <span className="text-xs font-semibold text-text-secondary">
               Autonomous Delta
             </span>
             <span className="material-symbols-outlined text-primary text-[20px]">insights</span>
@@ -92,7 +91,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="bg-status-failure h-full w-[50%]"></div>
             </div>
           </div>
-          <span className="font-code-sm text-text-muted text-xs">
+          <span className="text-xs text-text-secondary font-medium">
             +25.0% net improvement in CI pipeline velocity
           </span>
         </div>
@@ -100,7 +99,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Worker Performance */}
         <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="font-label-sm text-text-muted uppercase tracking-wider">
+            <span className="text-xs font-semibold text-text-secondary">
               Parallel Execution
             </span>
             <span className="material-symbols-outlined text-text-secondary text-[20px]">memory</span>
@@ -112,14 +111,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-body-sm text-text-secondary">
               Chromium Headless Cluster on Ubuntu 24.04
             </span>
+            {/* Thread Segments */}
             <div className="flex items-center gap-1 mt-2">
-              <span className="h-2 flex-1 rounded bg-status-success"></span>
-              <span className="h-2 flex-1 rounded bg-status-success"></span>
-              <span className="h-2 flex-1 rounded bg-status-healed"></span>
-              <span className="h-2 flex-1 rounded bg-status-warning"></span>
+              <span className="h-2 flex-1 rounded bg-status-success" title="Thread 1: Healthy Passing"></span>
+              <span className="h-2 flex-1 rounded bg-status-success" title="Thread 2: Healthy Passing"></span>
+              <span className="h-2 flex-1 rounded bg-status-healed" title="Thread 3: Autonomous Healing Active"></span>
+              <span className="h-2 flex-1 rounded bg-status-warning" title="Thread 4: Active Timeout Intercept"></span>
+            </div>
+            {/* Thread States Legend */}
+            <div className="flex items-center justify-between text-[11px] text-text-secondary mt-1.5 pt-1">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-status-success"></span>
+                <span>Passing (2)</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-status-healed"></span>
+                <span>Healed (1)</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-status-warning"></span>
+                <span>Intercepting (1)</span>
+              </span>
             </div>
           </div>
-          <span className="font-code-sm text-status-healed text-xs">
+          <span className="text-xs text-status-healed font-medium">
             Intervention overhead: ~32ms avg
           </span>
         </div>
@@ -127,7 +142,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Flakiness Index */}
         <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="font-label-sm text-text-muted uppercase tracking-wider">
+            <span className="text-xs font-semibold text-text-secondary">
               Flakiness Index
             </span>
             <span className="material-symbols-outlined text-status-healed text-[20px]">verified</span>
@@ -140,7 +155,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Down from 14.6% before dynamic locator matching
             </span>
           </div>
-          <span className="font-code-sm text-text-secondary text-xs">
+          <span className="text-xs text-text-secondary font-medium">
             Zero false-positive merges across 128 recorded runs
           </span>
         </div>
@@ -148,14 +163,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Component Volatility Breakdown */}
       <div className="bg-surface-canvas rounded-xl p-space-lg border border-border-subtle shadow-sm flex flex-col gap-space-md">
+        {/* Header: Standardized with icon on the right matching metric cards */}
         <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">layers</span>
             <span className="font-headline-sm text-text-primary font-semibold">
               UI Component Mutation Hotspots
             </span>
+            <span className="text-xs text-text-muted">(Last 30 Days)</span>
           </div>
-          <span className="font-code-sm text-text-muted">Last 30 Days</span>
+          <span className="material-symbols-outlined text-primary text-[20px]">layers</span>
         </div>
 
         <div className="space-y-3">

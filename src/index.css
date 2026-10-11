@@ -301,3 +301,74 @@
   line-height: 18px;
   font-weight: 400;
 }
+
+/* Mascot Float & Shadow Keyframes */
+@keyframes mascotFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-10px) scale(0.98, 1.02);
+  }
+}
+
+@keyframes mascotShadow {
+  0%, 100% {
+    transform: scale(1, 1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(0.76, 0.76);
+    opacity: 0.15;
+  }
+}
+
+.animate-mascot-float {
+  animation: mascotFloat 2.8s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+.animate-mascot-shadow {
+  animation: mascotShadow 2.8s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+/* Ghost Dissolve / Disappear Effect on Hover (Silky Smooth Spectral Fade & Gentle Reappearance) */
+.ghost-disappear {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0px) drop-shadow(0 14px 24px rgba(124, 58, 237, 0.28)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-origin: center bottom;
+}
+
+.group:hover .ghost-disappear,
+.ghost-disappear:hover,
+.ghost-hovered {
+  opacity: 0 !important;
+  transform: translate3d(0, -22px, 0) scale(1.06) !important;
+  filter: blur(14px) drop-shadow(0 0 28px rgba(168, 85, 247, 0)) drop-shadow(0 0 0px rgba(0, 0, 0, 0)) !important;
+}
+
+.ghost-ground-shadow {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  transform-origin: center center;
+}
+
+.group:hover .ghost-ground-shadow,
+.ghost-ground-shadow:hover,
+.ghost-shadow-hovered {
+  opacity: 0 !important;
+  transform: scale(0.2) !important;
+}
+
+

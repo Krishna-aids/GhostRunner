@@ -1,0 +1,107 @@
+import React, { useState } from 'react';
+import { DEMO_OWNER_ID } from '../../lib/demoStore';
+
+interface LoginPageProps {
+  onLoginSuccess: (ownerId: string, email: string, name: string) => void;
+  onExplorePublic?: () => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onExplorePublic }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = () => {
+    setLoading(true);
+    // Simulate Supabase OAuth redirect or completion
+    setTimeout(() => {
+      onLoginSuccess(DEMO_OWNER_ID, 'krishnakumrawat1406@gmail.com', 'Krishna Kumrawat');
+      setLoading(false);
+    }, 400);
+  };
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0a0a0a] text-neutral-100 font-sans">
+      <div className="w-full max-w-md rounded-2xl bg-[#121212] border border-[#222222] p-8 shadow-2xl flex flex-col items-center text-center gap-6">
+        {/* Logo and Mascot */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-16 h-16 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-inner overflow-hidden p-2">
+            <img
+              src="/mascot.png"
+              alt="GhostRunner Mascot"
+              className="w-full h-full object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+              <span>GhostRunner</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                v1.0
+              </span>
+            </h1>
+            <p className="text-xs text-neutral-400 max-w-xs">
+              Intent-Aware Self-Healing E2E Testing Platform
+            </p>
+          </div>
+        </div>
+
+        {/* Auth CTA */}
+        <div className="w-full flex flex-col gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white text-neutral-900 font-semibold text-sm hover:bg-neutral-100 transition-all shadow-md active:scale-[0.99] cursor-pointer disabled:opacity-50"
+          >
+            {/* Google Icon SVG */}
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
+          </button>
+
+          {/* Quick Demo Bypass Button */}
+          <button
+            type="button"
+            onClick={() => onLoginSuccess(DEMO_OWNER_ID, 'demo-lead@ghostrunner.dev', 'Demo QA Lead')}
+            className="w-full py-2.5 px-4 rounded-xl border border-neutral-800 bg-neutral-900/60 hover:bg-neutral-800 text-neutral-300 font-medium text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[16px] text-emerald-400">
+              play_circle
+            </span>
+            <span>Instant Demo Bypass (One-Click)</span>
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className="pt-4 border-t border-neutral-900 w-full flex flex-col items-center gap-2 text-[11px] text-neutral-500">
+          <span>Powered by Supabase Auth</span>
+          {onExplorePublic && (
+            <button
+              type="button"
+              onClick={onExplorePublic}
+              className="text-neutral-400 hover:text-white underline cursor-pointer"
+            >
+              Back to Overview & Marketing
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

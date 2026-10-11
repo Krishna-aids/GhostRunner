@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" width="240" height="280" fill="none">
+  <defs>
+    <!-- Soft gradients for 3D cartoon depth -->
+    <linearGradient id="cowlGrad" x1="60" y1="30" x2="180" y2="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#7C3AED" />
+      <stop offset="100%" stop-color="#6D28D9" />
+    </linearGradient>
+    <linearGradient id="cowlInnerGrad" x1="120" y1="70" x2="120" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B0764" />
+      <stop offset="100%" stop-color="#2E1065" />
+    </linearGradient>
+    <linearGradient id="ghostBodyGrad" x1="120" y1="120" x2="120" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="75%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EDE9FE" />
+    </linearGradient>
+    <radialGradient id="groundShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#8B5CF6" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Ground Shadow (stationary / scales with float) -->
+  <ellipse class="ghost-shadow" cx="120" cy="234" rx="36" ry="6.5" fill="url(#groundShadow)" />
+
+  <!-- Floating Mascot Group -->
+  <g class="ghost-floater">
+    <!-- Ghost Body / Sheet -->
+    <path
+      d="M 74 126
+         C 70 142, 60 156, 68 168
+         C 74 176, 84 172, 92 182
+         C 98 190, 106 195, 120 196
+         C 134 195, 142 190, 148 182
+         C 156 172, 166 176, 172 168
+         C 180 156, 170 142, 166 126
+         Z"
+      fill="url(#ghostBodyGrad)"
+      stroke="#2E1065"
+      stroke-width="4.5"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+
+    <!-- Ghost body fold shadows -->
+    <path
+      d="M 90 178 Q 94 165 98 160"
+      stroke="#DDD6FE"
+      stroke-width="3"
+      stroke-linecap="round"
+    />
+    <path
+      d="M 148 178 Q 144 165 140 160"
+      stroke="#DDD6FE"
+      stroke-width="3"
+      stroke-linecap="round"
+    />
+
+    <!-- Cowl / Hood Outer -->
+    <!-- Floppy tip draping down on left: (120, 28) -> (85, 30) -> (48, 52) -> (38, 70) -> (48, 80) -> (66, 68) -->
+    <path
+      d="M 120 28
+         C 158 28, 188 56, 188 96
+         C 188 122, 178 138, 162 142
+         C 146 146, 134 140, 120 140
+         C 106 140, 94 146, 78 142
+         C 62 138, 52 122, 52 96
+         C 52 82, 42 74, 38 68
+         C 34 60, 42 48, 56 42
+         C 74 34, 96 28, 120 28
+         Z"
+      fill="url(#cowlGrad)"
+      stroke="#2E1065"
+      stroke-width="4.5"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+
+    <!-- Floppy hood tip crease / fold -->
+    <path
+      d="M 62 44 Q 48 56 46 68"
+      stroke="#2E1065"
+      stroke-width="3.5"
+      stroke-linecap="round"
+    />
+
+    <!-- Inner Hood Cavity (Dark opening) -->
+    <path
+      d="M 120 46
+         C 152 46, 172 70, 170 102
+         C 168 124, 150 134, 120 134
+         C 90 134, 72 124, 70 102
+         C 68 70, 88 46, 120 46
+         Z"
+      fill="url(#cowlInnerGrad)"
+    />
+
+    <!-- Skull Face -->
+    <path
+      d="M 120 52
+         C 146 52, 162 70, 160 96
+         C 158 110, 150 114, 146 122
+         C 142 129, 134 132, 120 132
+         C 106 132, 98 129, 94 122
+         C 90 114, 82 110, 80 96
+         C 78 70, 94 52, 120 52
+         Z"
+      fill="#FFFFFF"
+      stroke="#2E1065"
+      stroke-width="4"
+      stroke-linejoin="round"
+    />
+
+    <!-- Temple indents -->
+    <path
+      d="M 82 92 C 86 94, 88 98, 86 102"
+      stroke="#EDE9FE"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+    <path
+      d="M 158 92 C 154 94, 152 98, 154 102"
+      stroke="#EDE9FE"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+
+    <!-- Left Eye Socket -->
+    <ellipse
+      cx="105"
+      cy="93"
+      rx="10.5"
+      ry="13.5"
+      transform="rotate(-7 105 93)"
+      fill="#1E1035"
+    />
+
+    <!-- Right Eye Socket -->
+    <ellipse
+      cx="135"
+      cy="93"
+      rx="10.5"
+      ry="13.5"
+      transform="rotate(7 135 93)"
+      fill="#1E1035"
+    />
+
+    <!-- Cute Specular Highlights in Eyes -->
+    <circle cx="102" cy="89" r="2.5" fill="#FFFFFF" opacity="0.9" />
+    <circle cx="132" cy="89" r="2.5" fill="#FFFFFF" opacity="0.9" />
+
+    <!-- Inverted Heart / Triangle Nose Cavity -->
+    <path
+      d="M 120 104
+         C 118 102, 115 104, 116 107
+         L 120 112
+         L 124 107
+         C 125 104, 122 102, 120 104
+         Z"
+      fill="#1E1035"
+    />
+
+    <!-- Cute Smiling Teeth Line -->
+    <!-- Base smile seam line -->
+    <path
+      d="M 104 121 Q 120 126 136 121"
+      stroke="#1E1035"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      fill="none"
+    />
+    <!-- Vertical tooth notches -->
+    <line x1="112" y1="118" x2="112" y2="124" stroke="#1E1035" stroke-width="2" stroke-linecap="round" />
+    <line x1="120" y1="119" x2="120" y2="125" stroke="#1E1035" stroke-width="2" stroke-linecap="round" />
+    <line x1="128" y1="118" x2="128" y2="124" stroke="#1E1035" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Cute Cheek Blushes (subtle transparent purple glow) -->
+    <circle cx="88" cy="104" r="6" fill="#C084FC" opacity="0.35" />
+    <circle cx="152" cy="104" r="6" fill="#C084FC" opacity="0.35" />
+  </g>
+</svg>

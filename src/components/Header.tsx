@@ -182,24 +182,30 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right zone: Engine status badge, Notifications & Profile */}
       <div className="flex items-center gap-space-sm sm:gap-space-lg">
-        {/* Engine Active Toggle Pill */}
-        <button
-          type="button"
-          onClick={onToggleEngine}
-          title="Click to toggle autonomous self-healing engine"
-          className={`hidden md:flex items-center gap-2 px-space-sm py-1 rounded border font-code-sm text-code-sm transition-all cursor-pointer ${
-            engineActive
-              ? 'bg-status-healed-subtle border-status-healed/30 text-status-healed hover:border-status-healed'
-              : 'bg-surface-muted border-border-subtle text-text-muted hover:border-border-strong'
-          }`}
-        >
-          <span className={`material-symbols-outlined text-[16px] ${engineActive ? 'text-status-healed' : 'text-text-muted'}`}>
-            bolt
-          </span>
-          <span>{engineActive ? 'Engine Active' : 'Engine Paused'}</span>
-          <span className="opacity-40">•</span>
-          <span className="font-medium">{engineActive ? 'Self-Healing ON' : 'Self-Healing OFF'}</span>
-        </button>
+        {/* Distinct Status Indicators: Split into Engine State and Self-Healing Toggle */}
+        <div className="hidden md:flex items-center gap-2">
+          {/* 1. Live Engine Status Badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-subtle border border-border-subtle text-xs font-medium text-text-secondary select-none">
+            <span className={`w-2 h-2 rounded-full ${engineActive ? 'bg-status-success animate-pulse' : 'bg-text-muted'}`} />
+            <span>{engineActive ? 'Engine Active' : 'Engine Paused'}</span>
+          </div>
+
+          {/* 2. Interactive Self-Healing Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={onToggleEngine}
+            aria-label={`Toggle self-healing: currently ${engineActive ? 'enabled' : 'disabled'}`}
+            title="Click to toggle autonomous self-healing mode"
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer ${
+              engineActive
+                ? 'bg-status-healed-subtle border-status-healed/40 text-status-healed hover:bg-status-healed/20'
+                : 'bg-surface-muted border-border-subtle text-text-muted hover:text-text-primary hover:border-border-strong'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
+            <span>Self-Healing: {engineActive ? 'ON' : 'OFF'}</span>
+          </button>
+        </div>
 
         <div className="flex items-center gap-space-sm">
           {/* Dark / Light Theme Toggle */}

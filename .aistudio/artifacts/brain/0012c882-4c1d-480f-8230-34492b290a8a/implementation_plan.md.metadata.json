@@ -1,0 +1,6 @@
+{
+  "summary":  "Architectural implementation plan for GhostRunner's intent-aware self-healing E2E testing platform, aligning the 5-page specification (/login, /projects, /projects/:id, /tests/:id, /runs/:id) with existing dashboard telemetry and automated self-healing workflows.",
+  "updatedAt":  "2026-10-11T05:15:38.983638916Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
