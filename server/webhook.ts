@@ -103,7 +103,7 @@ function verifyGitHubSignature(req: Request, res: Response, next: NextFunction):
 
 // ─── Helpers: find project linked to a repo ─────────────────────────────────
 
-async function findProjectForRepo(repoFullName: string): Promise<{
+async function findProjectForRepo(repoFullName: string, projectId?: string): Promise<{
   id: string;
   owner_id: string;
   repo_metadata: Record<string, any>;
@@ -111,15 +111,32 @@ async function findProjectForRepo(repoFullName: string): Promise<{
   const supabase = getSupabase();
   if (!supabase) return null;
 
-  // Query projects whose repo_metadata contains the full_name
+  if (projectId) {
+    const { data } = await supabase
+      .from('projects')
+      .select('id, owner_id, repo_metadata')
+      .eq('id', projectId)
+      .single();
+    if (data) return data;
+  }
+
+  // Query projects whose repo_metadata contains the full_name, sorted by created_at desc
   const { data } = await supabase
     .from('projects')
-    .select('id, owner_id, repo_metadata')
-    .not('repo_metadata', 'is', null);
+    .select('id, owner_id, repo_metadata, created_at')
+    .not('repo_metadata', 'is', null)
+    .order('created_at', { ascending: false });
 
   if (!data) return null;
 
+  // Prioritize active demo project for user-lead-1406
   return (
+    data.find(
+      (p: any) =>
+        (p.owner_id === 'user-lead-1406' || p.id === '0d28c30a-c8d3-4cc5-9c2e-562c0c213395') &&
+        (p.repo_metadata?.full_name === repoFullName ||
+         p.repo_metadata?.github_url?.includes(repoFullName))
+    ) ||
     data.find(
       (p: any) =>
         p.repo_metadata?.full_name === repoFullName ||
@@ -128,62 +145,58 @@ async function findProjectForRepo(repoFullName: string): Promise<{
   );
 }
 
-async function createQueuedRun(
+async function createQueuedRunsForProject(
   projectId: string,
   ownerId: string,
   context: { trigger: string; ref: string; sha?: string }
-): Promise<string | null> {
+): Promise<Array<{ runId: string; testDefinitionId: string }>> {
   const supabase = getSupabase();
-  if (!supabase) return null;
+  if (!supabase) return [];
 
-  // Find the most recent test definition for this project
+  // Find all test definitions for this project (e.g. all 5 suites)
   const { data: tests } = await supabase
     .from('test_definitions')
-    .select('id, active_version_id')
+    .select('id, name, active_version_id')
     .eq('project_id', projectId)
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .order('created_at', { ascending: true });
 
   if (!tests || tests.length === 0) {
     console.log(`   ⚠️  No test definitions found for project ${projectId}`);
-    return null;
+    return [];
   }
 
-  const test = tests[0];
-  const versionId = test.active_version_id || `ver-${Date.now()}`;
+  const results: Array<{ runId: string; testDefinitionId: string }> = [];
 
-  const { data: existingRuns } = await supabase
-    .from('test_runs')
-    .select('id')
-    .eq('test_definition_id', test.id);
+  for (const test of tests) {
+    const versionId = test.active_version_id || `ver-${Date.now()}`;
 
-  const runNumber = ((existingRuns ?? []).length) + 1;
+    const { data: run, error } = await supabase
+      .from('test_runs')
+      .insert({
+        test_definition_id: test.id,
+        test_version_id: versionId,
+        owner_id: ownerId,
+        status: 'queued',
+        classification: null,
+        confidence: null,
+        summary: `Triggered by ${context.trigger} on ${context.ref} (commit ${context.sha ? context.sha.substring(0, 7) : 'HEAD'})`,
+        environment_ref: context.ref,
+        started_at: new Date().toISOString(),
+        finished_at: null,
+        parent_run_id: null,
+      })
+      .select()
+      .single();
 
-  const { data: run, error } = await supabase
-    .from('test_runs')
-    .insert({
-      test_definition_id: test.id,
-      test_version_id: versionId,
-      owner_id: ownerId,
-      status: 'queued',
-      classification: null,
-      confidence: null,
-      summary: `Triggered by ${context.trigger} on ${context.ref}`,
-      environment_ref: context.ref,
-      started_at: new Date().toISOString(),
-      finished_at: null,
-      parent_run_id: null,
-      run_number: runNumber,
-    })
-    .select()
-    .single();
+    if (error) {
+      console.error(`   ❌ Failed to create run record for test ${test.id}:`, error.message);
+      continue;
+    }
 
-  if (error) {
-    console.error(`   ❌ Failed to create run record:`, error.message);
-    return null;
+    results.push({ runId: run.id, testDefinitionId: test.id });
   }
 
-  return run.id;
+  return results;
 }
 
 // ─── Event Handlers ────────────────────────────────────────────────────────
@@ -197,12 +210,8 @@ async function handleInstallation(event: WebhookEvent): Promise<void> {
 
   if (action === 'created') {
     console.log(`   → New installation for ${account} (id: ${installationId}). App is ready.`);
-    // Installation ID is stored in project.repo_metadata.installation_id when user
-    // connects a repo via the UI. Nothing to store here unless we build a separate
-    // installations table.
   } else if (action === 'deleted') {
     console.log(`   → Installation removed for ${account}`);
-    // TODO: optionally mark linked projects as disconnected
   }
 }
 
@@ -211,19 +220,12 @@ async function handlePush(event: WebhookEvent): Promise<void> {
   const branch = event.ref?.replace('refs/heads/', '');
   const sha = event.after;
   const commitCount = event.commits?.length || 0;
-  const installationId = event.installation?.id;
+  const installationId = event.installation?.id || 0;
 
   console.log(`\n📦 Push to ${repo}@${branch} (${sha?.substring(0, 7)}) — ${commitCount} commit(s)`);
 
-  if (!repo || !branch || !sha || !installationId) {
+  if (!repo || !branch || !sha) {
     console.log('   ⚠️  Missing required push event fields, skipping');
-    return;
-  }
-
-  // Only trigger on default branch pushes (configurable in future)
-  const defaultBranch = event.repository?.default_branch || 'main';
-  if (branch !== defaultBranch) {
-    console.log(`   ⏭️  Push is on non-default branch (${branch}), skipping auto-run`);
     return;
   }
 
@@ -233,33 +235,39 @@ async function handlePush(event: WebhookEvent): Promise<void> {
     return;
   }
 
-  const runId = await createQueuedRun(project.id, project.owner_id, {
+  const runs = await createQueuedRunsForProject(project.id, project.owner_id, {
     trigger: 'push',
     ref: branch,
     sha,
   });
 
-  if (!runId) return;
+  console.log(`   ✅ Created ${runs.length} runs for project ${project.id} — starting execution async`);
 
-  console.log(`   ✅ Created run ${runId} — starting execution async`);
-
-  // Fire off async — don't await (webhook must respond in <10s)
-  triggerTestRun({
-    runId,
-    projectId: project.id,
-    repoFullName: repo,
-    ref: branch,
-    installationId,
-    commitSha: sha,
-    trigger: 'push',
-  }).catch((err) => console.error(`   ❌ triggerTestRun error:`, err));
+  (async () => {
+    for (const { runId, testDefinitionId } of runs) {
+      try {
+        await triggerTestRun({
+          runId,
+          projectId: project.id,
+          repoFullName: repo,
+          ref: branch,
+          installationId,
+          commitSha: sha,
+          trigger: 'push',
+          testDefinitionId,
+        });
+      } catch (err) {
+        console.error(`   ❌ triggerTestRun error on ${runId}:`, err);
+      }
+    }
+  })();
 }
 
 async function handlePullRequest(event: WebhookEvent): Promise<void> {
   const action = event.action;
   const repo = event.repository?.full_name;
   const pr = event.pull_request;
-  const installationId = event.installation?.id;
+  const installationId = event.installation?.id || 0;
 
   if (!pr) return;
 
@@ -267,7 +275,7 @@ async function handlePullRequest(event: WebhookEvent): Promise<void> {
   console.log(`   → ${pr.head.ref} → ${pr.base.ref} (sha: ${pr.head.sha.substring(0, 7)})`);
 
   if (action !== 'opened' && action !== 'synchronize') return;
-  if (!repo || !installationId) return;
+  if (!repo) return;
 
   const project = await findProjectForRepo(repo);
   if (!project) {
@@ -275,25 +283,26 @@ async function handlePullRequest(event: WebhookEvent): Promise<void> {
     return;
   }
 
-  const runId = await createQueuedRun(project.id, project.owner_id, {
+  const runs = await createQueuedRunsForProject(project.id, project.owner_id, {
     trigger: 'pull_request',
     ref: pr.head.ref,
     sha: pr.head.sha,
   });
 
-  if (!runId) return;
+  console.log(`   ✅ Created ${runs.length} runs for PR #${pr.number} — starting async`);
 
-  console.log(`   ✅ Created run ${runId} for PR #${pr.number} — starting async`);
-
-  triggerTestRun({
-    runId,
-    projectId: project.id,
-    repoFullName: repo,
-    ref: pr.head.sha,   // use exact SHA for reproducibility
-    installationId,
-    commitSha: pr.head.sha,
-    trigger: 'pull_request',
-  }).catch((err) => console.error(`   ❌ triggerTestRun error:`, err));
+  for (const { runId, testDefinitionId } of runs) {
+    triggerTestRun({
+      runId,
+      projectId: project.id,
+      repoFullName: repo,
+      ref: pr.head.sha,   // use exact SHA for reproducibility
+      installationId,
+      commitSha: pr.head.sha,
+      trigger: 'pull_request',
+      testDefinitionId,
+    }).catch((err) => console.error(`   ❌ triggerTestRun error on ${runId}:`, err));
+  }
 }
 
 async function handleCheckSuite(event: WebhookEvent): Promise<void> {
@@ -314,7 +323,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   } else {
     res.header('Access-Control-Allow-Origin', FRONTEND_URL);
   }
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Id');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Id, ngrok-skip-browser-warning');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
@@ -338,7 +347,11 @@ app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
   const setup_action = req.query.setup_action as string;
 
   if (!code) {
-    res.status(400).json({ error: 'Missing code parameter' });
+    res.status(200).json({
+      status: 'active',
+      endpoint: '/api/auth/github/callback',
+      message: 'GitHub OAuth Callback endpoint is ready. GitHub will redirect here with a code parameter during OAuth sign-in.'
+    });
     return;
   }
 
@@ -392,6 +405,52 @@ app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('   ❌ OAuth error:', err);
     res.redirect(`${FRONTEND_URL}/app?github_error=server_error`);
+  }
+});
+
+// Exchange code for token directly via API (useful for SPA callback)
+app.post('/api/auth/github/exchange', async (req: Request, res: Response) => {
+  const { code } = req.body;
+  if (!code) {
+    res.status(400).json({ error: 'OAuth code is required' });
+    return;
+  }
+
+  try {
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: GITHUB_CLIENT_ID,
+        client_secret: GITHUB_CLIENT_SECRET,
+        code,
+      }),
+    });
+
+    const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
+    if (tokenData.error || !tokenData.access_token) {
+      res.status(400).json({ error: tokenData.error || 'Token exchange failed' });
+      return;
+    }
+
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+
+    const userData = (await userRes.json()) as { login?: string };
+    const username = userData.login || 'unknown';
+
+    console.log(`   ✅ Direct OAuth exchange for @${username}`);
+    res.json({ token: tokenData.access_token, username });
+  } catch (err: any) {
+    console.error('   ❌ Direct exchange error:', err);
+    res.status(500).json({ error: err.message || 'Server error during OAuth exchange' });
   }
 });
 
@@ -476,6 +535,55 @@ app.post('/api/runs/trigger', async (req: Request, res: Response) => {
 
 // ─── Health check ──────────────────────────────────────────────────────────
 
+// ─── Manual Push Simulation Endpoint (for Live Demos & Stage Presentations) ──
+app.post('/api/webhook/simulate-push', async (req: Request, res: Response) => {
+  const repo = req.body.repoFullName || 'Krishna-aids/Demo';
+  const branch = req.body.branch || 'main';
+  const sha = req.body.commitSha || crypto.randomBytes(4).toString('hex');
+  const projectId = req.body.projectId || '0d28c30a-c8d3-4cc5-9c2e-562c0c213395';
+  const project = await findProjectForRepo(repo, projectId);
+
+  if (!project) {
+    res.status(404).json({ error: `No project linked to ${repo}` });
+    return;
+  }
+
+  console.log(`\n🚀 [SIMULATE] Manual push simulation triggered for ${repo}@${branch} (${sha.substring(0, 7)})`);
+
+  const runs = await createQueuedRunsForProject(project.id, project.owner_id, {
+    trigger: 'github-push-simulation',
+    ref: branch,
+    sha,
+  });
+
+  res.json({
+    success: true,
+    message: `Triggered ${runs.length} test suite runs for commit ${sha.substring(0, 7)}`,
+    projectId: project.id,
+    commitSha: sha,
+    runs,
+  });
+
+  (async () => {
+    for (const { runId, testDefinitionId } of runs) {
+      try {
+        await triggerTestRun({
+          runId,
+          projectId: project.id,
+          repoFullName: repo,
+          ref: branch,
+          installationId: 0,
+          commitSha: sha,
+          trigger: 'push',
+          testDefinitionId,
+        });
+      } catch (err) {
+        console.error(`   ❌ triggerTestRun error on ${runId}:`, err);
+      }
+    }
+  })();
+});
+
 // Repair Proposal Approve
 app.post('/api/repair-proposals/:proposalId/approve', async (req, res) => {
   const { proposalId } = req.params;
@@ -555,13 +663,39 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // ─── GitHub webhook endpoint ───────────────────────────────────────────────
+app.get('/api/webhooks/github', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'online',
+    endpoint: '/api/webhooks/github',
+    method: 'POST',
+    description: 'GhostRunner GitHub App Webhook Listener is active and listening for push/pull_request events.',
+    usage: 'This URL must be registered in GitHub App Settings -> Webhook URL. GitHub automatically sends HTTP POST requests here.'
+  });
+});
+
+const processedDeliveries = new Set<string>();
+
 app.post('/api/webhooks/github', verifyGitHubSignature, async (req: Request, res: Response) => {
   const eventType = req.headers['x-github-event'] as string;
   const deliveryId = req.headers['x-github-delivery'] as string;
   const event: WebhookEvent = req.body;
 
+  // ─── Idempotency Check ───────────────────────────────────────────────────
+  if (deliveryId) {
+    if (processedDeliveries.has(deliveryId)) {
+      console.log(`\n🔁 Duplicate delivery ${deliveryId} received — acknowledging idempotently (no duplicate runs)`);
+      res.status(200).json({ received: true, idempotent: true, event: eventType });
+      return;
+    }
+    processedDeliveries.add(deliveryId);
+    if (processedDeliveries.size > 2000) {
+      const first = processedDeliveries.values().next().value;
+      if (first) processedDeliveries.delete(first);
+    }
+  }
+
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`📨 Webhook received: ${eventType} (delivery: ${deliveryId})`);
+  console.log(`📨 Webhook received: ${eventType} (delivery: ${deliveryId || 'local'})`);
   console.log(`   Action: ${event.action || 'n/a'}`);
   console.log(`   Repo:   ${event.repository?.full_name || 'n/a'}`);
   console.log(`   Sender: ${event.sender?.login || 'n/a'}`);

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthUser } from '../services/authService';
 
-export type AppTab = 'dashboard' | 'projects' | 'test-runs' | 'healing-queue' | 'settings';
+export type AppTab = 'dashboard' | 'projects' | 'test-runs' | 'healing-queue' | 'settings' | 'demo-lab';
 
 interface SidebarProps {
   currentTab: AppTab;
@@ -104,6 +104,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Platform
             </div>
             <nav className="flex flex-col gap-1 mt-1">
+              {/* Interactive Demo Lab */}
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectTab('demo-lab');
+                  onCloseMobile();
+                }}
+                className={`w-full flex items-center justify-between px-space-sm py-2 rounded-lg transition-colors text-left cursor-pointer ${
+                  currentTab === 'demo-lab'
+                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold border border-amber-500/30'
+                    : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
+                }`}
+              >
+                <div className="flex items-center gap-space-sm">
+                  <span className="material-symbols-outlined text-[18px] text-amber-500">auto_awesome</span>
+                  <span className="font-label-md text-sm">Interactive Lab</span>
+                </div>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">
+                  DEMO
+                </span>
+              </button>
+
               {/* Dashboard */}
               <button
                 type="button"

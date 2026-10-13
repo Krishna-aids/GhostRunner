@@ -34,6 +34,7 @@ import { ProjectsPage } from './components/pages/ProjectsPage';
 import { ProjectDetailPage } from './components/pages/ProjectDetailPage';
 import { TestDetailPage } from './components/pages/TestDetailPage';
 import { RunDetailPage } from './components/pages/RunDetailPage';
+import { InteractiveDemoLab } from './components/pages/InteractiveDemoLab';
 import { handleOAuthCallback } from './services/githubService';
 
 export type AppRoute =
@@ -592,6 +593,10 @@ function AppContent() {
               {/* EXISTING TABS (/app): ConnectProject, Test Runs, Healing Queue, Dashboard, Settings */}
               {route === 'app' && (
                 <>
+                  {currentTab === 'demo-lab' && (
+                    <InteractiveDemoLab />
+                  )}
+
                   {currentTab === 'projects' && (
                     <ConnectProjectView
                       onOpenTestFlow={(_projectName) => {

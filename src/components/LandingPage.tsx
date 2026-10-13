@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 
 interface LandingPageProps {
-  onLaunchConsole: (initialTab?: 'dashboard' | 'projects' | 'test-runs' | 'healing-queue' | 'settings') => void;
+  onLaunchConsole: (initialTab?: 'dashboard' | 'projects' | 'test-runs' | 'healing-queue' | 'settings' | 'demo-lab') => void;
   onRunSampleSuite?: () => void;
   onRunDemoSuite?: () => void;
   onNavigateToAuth?: (page: 'signin' | 'signup' | 'forgot-password') => void;
@@ -150,6 +150,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* CTAs Row */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => onLaunchConsole('demo-lab' as any)}
+            className="h-12 inline-flex items-center justify-center gap-2 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md transition-all cursor-pointer ring-2 ring-amber-400/50"
+          >
+            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+            <span>Live Interactive Demo Lab</span>
+          </button>
+
           <button
             type="button"
             onClick={() => (onNavigateToAuth ? onNavigateToAuth('signup') : onLaunchConsole('projects'))}
@@ -1279,3 +1288,4 @@ jobs:
     </div>
   );
 };
+

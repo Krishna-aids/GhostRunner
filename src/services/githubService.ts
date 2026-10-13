@@ -80,6 +80,39 @@ export function handleOAuthCallback(): { token: string; username: string } | nul
   return null;
 }
 
+export function setStoredGitHubAuth(token: string, username: string): void {
+  localStorage.setItem('github_access_token', token);
+  localStorage.setItem('github_username', username);
+}
+
+/**
+ * Exchange an OAuth authorization code for an access token via backend webhook server.
+ */
+export async function exchangeOAuthCode(code: string): Promise<{ token: string; username: string } | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/github/exchange`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ code }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.token && data.username) {
+        setStoredGitHubAuth(data.token, data.username);
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+        return data;
+      }
+    }
+  } catch {
+    // Backend offline or unreachable
+  }
+  return null;
+}
+
 /**
  * Check if the user is already authenticated with GitHub.
  */

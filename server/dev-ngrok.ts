@@ -82,7 +82,7 @@ try {
 function showManualInstructions() {
   console.log(`ℹ️  To expose this webhook server with ngrok:`);
   console.log(`   1. Open a new terminal and run:`);
-  console.log(`      npx @ngrok/ngrok http ${WEBHOOK_PORT}   (or: ngrok http ${WEBHOOK_PORT})`);
+  console.log(`      npx ngrok http ${WEBHOOK_PORT}   (or: winget install Ngrok.Ngrok)`);
   console.log(`   2. Copy the resulting HTTPS forwarding URL (e.g. https://xyz.ngrok-free.app)`);
   console.log(`   3. In your .env file, set:`);
   console.log(`      VITE_WEBHOOK_URL="https://xyz.ngrok-free.app"`);

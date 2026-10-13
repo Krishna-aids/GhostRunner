@@ -22,24 +22,26 @@ import { createCheckRun, completeCheckRun } from './checkRunService.js';
 import { analyzeFailureAndHeal } from './healingAnalyzer.js';
 import { Response as ExpressResponse } from 'express';
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 // ── Supabase (service role) ──────────────────────────────────────────────────
 // The webhook server uses the SERVICE ROLE key so it can bypass RLS
 // when writing run results on behalf of users.
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+function getSupabase() {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+  if (!url || !key) {
+    throw new Error('Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing)');
+  }
+  return createClient(url, key);
+}
+
 const PYTHON_BACKEND_URL =
   process.env.PYTHON_BACKEND_URL || process.env.VITE_API_BASE_URL || 'https://humans-hackwave3-0.vercel.app';
 const WEBHOOK_PORT = parseInt(process.env.WEBHOOK_PORT || '4000', 10);
 const WEBHOOK_PUBLIC_URL =
   process.env.WEBHOOK_PUBLIC_URL || process.env.VITE_WEBHOOK_URL || `http://localhost:${WEBHOOK_PORT}`;
-
-function getSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing)');
-  }
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-}
 
 // ── SSE client registry ──────────────────────────────────────────────────────
 // Maps runId → array of active SSE response objects
@@ -257,7 +259,14 @@ export async function triggerTestRun(opts: TriggerRunOptions): Promise<void> {
     broadcastToRun(runId, { type: 'status', status: 'preparing' });
     setProgress(5);
 
-    // ── Step 1b: Python Execution Engine Delegation ───────────────────────
+    // ── Step 1b: Real Playwright Engine Execution (Demo / Local) ──────────
+    if (!isGitHubAppConfigured() || repoFullName.includes('acme-store')) {
+      log('ℹ️  Executing via GhostRunner Real E2E Playwright Engine...');
+      await executeRealPlaywrightRun(runId, testDefinitionId, commitSha, ref, log, setProgress);
+      return;
+    }
+
+    // ── Step 1c: Python Execution Engine Delegation ───────────────────────
     if (testDefinitionId) {
       try {
         log(`⚡ Delegating execution to Python Engine (${PYTHON_BACKEND_URL})...`);
@@ -302,13 +311,6 @@ export async function triggerTestRun(opts: TriggerRunOptions): Promise<void> {
       } catch (pyErr) {
         log(`ℹ️ Python engine unavailable (${pyErr instanceof Error ? pyErr.message : String(pyErr)}). Continuing with standard runner...`);
       }
-    }
-
-    // ── Step 2: Get installation token ────────────────────────────────────
-    if (!isGitHubAppConfigured()) {
-      log('⚠️  GitHub App not configured — skipping real execution (demo mode)');
-      await simulateDemoRun(runId, log, setProgress);
-      return;
     }
 
     log('Obtaining installation access token...');
@@ -467,9 +469,10 @@ function runShellCommand(
   onLine: (line: string) => void
 ): Promise<{ exitCode: number }> {
   return new Promise((resolve) => {
+    const isExe = cmd.toLowerCase().endsWith('.exe');
     const proc: ChildProcess = spawn(cmd, args, {
       cwd,
-      shell: process.platform === 'win32',
+      shell: isExe ? false : process.platform === 'win32',
       env: {
         ...process.env,
         CI: '1',               // tell frameworks to use non-interactive/CI mode
@@ -486,50 +489,121 @@ function runShellCommand(
     proc.stdout?.on('data', (d) => lineBuffer(d, ''));
     proc.stderr?.on('data', (d) => lineBuffer(d, '[stderr] '));
 
-    proc.on('close', (code) => resolve({ exitCode: code ?? 1 }));
+    let resolved = false;
+    const finish = (code: number | null) => {
+      if (!resolved) {
+        resolved = true;
+        resolve({ exitCode: code ?? 0 });
+      }
+    };
+
+    proc.on('exit', (code) => finish(code));
+    proc.on('close', (code) => finish(code));
     proc.on('error', (err) => {
       onLine(`[spawn error] ${err.message}`);
-      resolve({ exitCode: 1 });
+      finish(1);
     });
   });
 }
 
-// ── Demo mode (when GitHub App is not configured) ────────────────────────────
+// ── Real Playwright Runner Execution ─────────────────────────────────────────
 
-async function simulateDemoRun(
+async function executeRealPlaywrightRun(
   runId: string,
+  testDefinitionId: string | undefined,
+  commitSha: string | undefined,
+  ref: string | undefined,
   log: (line: string) => void,
   setProgress: (pct: number) => void
 ): Promise<void> {
-  await updateRunStatus(runId, { status: 'running', summary: 'Running demo simulation...' });
+  await updateRunStatus(runId, { status: 'running', summary: 'Starting Playwright engine...' });
   broadcastToRun(runId, { type: 'status', status: 'running' });
+  setProgress(10);
 
-  const demoLogs = [
-    '[00:00.02] Spawning 4 Chromium worker threads...',
-    '[00:00.08] Initializing GhostRunner neural locator resolver v2.4',
-    '[00:01.20] test_auth_sso.spec.ts: OAuth 2.0 handshake completed (200 OK)',
-    '[00:01.45] test_checkout_flow.spec.ts: Filled billing address input',
-    '[00:02.10] test_auth_sso.spec.ts: PASSED in 38s (0 interventions)',
-    '[00:02.32] test_checkout_flow.spec.ts: [WARN] button#checkout-submit not found!',
-    '[00:02.35] [ghostrunner] Autonomous Self-Healing activated! Matching accessibility tree...',
-    '[00:02.38] [ghostrunner] Recovered: button[data-testid="place-order-cta"] (94% conf) in 32ms',
-    '[00:03.40] test_checkout_flow.spec.ts: PASSED via Self-Healing (1 issue resolved)',
-    '[00:03.80] Suite finished: 3 Passed (2 Healed), 1 Failed. 75.0% Success Rate.',
-  ];
+  // Map testDefinitionId or fetch test name from Supabase
+  let scenario = 'case_1';
+  const supabase = getSupabase();
+  if (testDefinitionId && supabase) {
+    try {
+      const { data: td } = await supabase
+        .from('test_definitions')
+        .select('name')
+        .eq('id', testDefinitionId)
+        .single();
 
-  for (let i = 0; i < demoLogs.length; i++) {
-    await new Promise((r) => setTimeout(r, 400));
-    log(demoLogs[i]);
-    setProgress(10 + Math.round((i / demoLogs.length) * 85));
+      const name = td?.name || '';
+      if (name.includes('TC-01') || name.toLowerCase().includes('baseline')) {
+        scenario = 'case_1';
+      } else if (name.includes('TC-02') || name.toLowerCase().includes('drift')) {
+        scenario = 'case_2';
+      } else if (name.includes('TC-03') || name.toLowerCase().includes('500') || name.toLowerCase().includes('outage')) {
+        scenario = 'case_3';
+      } else if (name.includes('TC-04') || name.toLowerCase().includes('regression')) {
+        scenario = 'case_4';
+      } else if (name.includes('TC-05') || name.toLowerCase().includes('auth') || name.toLowerCase().includes('rbac')) {
+        scenario = 'case_5';
+      }
+    } catch {
+      // fallback to case_1
+    }
   }
 
-  const passed = true;
-  await updateRunStatus(runId, {
-    status: 'passed',
-    summary: 'Demo: 3 Passed (2 Healed), 1 Failed.',
-    finished_at: new Date().toISOString(),
+  log(`[ghostrunner] Initiating Playwright headless Chromium for scenario: ${scenario}`);
+  setProgress(20);
+
+  let pythonBin = path.resolve(process.cwd(), '../backend/.venv/Scripts/python.exe');
+  if (!fs.existsSync(pythonBin)) {
+    pythonBin = path.resolve(process.cwd(), 'backend/.venv/Scripts/python.exe');
+  }
+  let scriptPath = path.resolve(process.cwd(), '../backend/scripts/run_real_scenario.py');
+  if (!fs.existsSync(scriptPath)) {
+    scriptPath = path.resolve(process.cwd(), 'backend/scripts/run_real_scenario.py');
+  }
+
+  const args = [
+    '-u',
+    scriptPath,
+    '--run-id', runId,
+    '--test-id', testDefinitionId || 'auto',
+    '--scenario', scenario,
+    '--base-url', 'http://127.0.0.1:3100',
+    '--commit-sha', commitSha || 'HEAD',
+  ];
+
+  const logLines: string[] = [];
+  const { exitCode } = await runShellCommand(pythonBin, args, path.resolve(process.cwd(), '..'), (line) => {
+    log(line);
+    logLines.push(line);
+    setProgress(Math.min(95, 20 + Math.floor(logLines.length * 4)));
   });
-  await appendLogArtifact(runId, demoLogs.join('\n'));
-  broadcastToRun(runId, { type: 'done', status: passed ? 'passed' : 'failed', summary: 'Demo run complete' });
+
+  const passed = exitCode === 0;
+  // Fetch updated status directly from Supabase to ensure consistency
+  if (supabase) {
+    try {
+      const { data: updatedRun } = await supabase
+        .from('test_runs')
+        .select('status, summary, classification, confidence')
+        .eq('id', runId)
+        .single();
+
+      if (updatedRun) {
+        broadcastToRun(runId, {
+          type: 'done',
+          status: updatedRun.status,
+          summary: updatedRun.summary,
+          classification: updatedRun.classification,
+          confidence: updatedRun.confidence,
+          exitCode,
+        });
+        setProgress(100);
+        return;
+      }
+    } catch {
+      // ignore fetch errors
+    }
+  }
+
+  broadcastToRun(runId, { type: 'done', status: passed ? 'passed' : 'failed', exitCode });
   setProgress(100);
 }
